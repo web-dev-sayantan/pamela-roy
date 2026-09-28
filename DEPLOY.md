@@ -27,6 +27,30 @@
 # Two things to set in the dashboard:
 #   Build command           bun run build
 #   Build output directory  dist
+#   Deploy command          (leave EMPTY)
+#
+# The deploy command has to stay empty. Pages publishes the output directory
+# itself; there is nothing for a deploy command to do. Setting it to
+# `npx wrangler deploy` looks harmless and is not: the repo has no
+# wrangler.toml, so wrangler falls into its non-interactive auto-config path,
+# decides an Astro project should be a Worker, runs `astro add cloudflare`, and
+# adds the @astrojs/cloudflare adapter to astro.config.mjs before rebuilding.
+# That rebuild fails in the adapter's prerender step:
+#
+#   Failed to get static paths from the Cloudflare prerender server (500).
+#   TypeError: The argument 'path' ... Received 'undefined'
+#       at async Object.fetch (node_modules/miniflare/.../entry.worker.js:5318:22)
+#
+# A static site cannot be served by that path anyway. Every route here is
+# prerendered (`output: "static"`, getStaticPaths throughout, no SSR and no API
+# routes), so the adapter has nothing to run. Note the shape of the log when
+# this happens: the build *succeeds*, prints "Success: Build command completed",
+# and only the deploy step fails. The build is not what is broken.
+#
+# The auto-config edit lands in the ephemeral build container, so astro.config.mjs
+# in the repo is left alone and the next build starts clean. A stale local
+# `wrangler.toml` is the version of this that *does* persist, so if one appears,
+# delete it rather than debugging the adapter.
 #
 # Bun version. The Pages build image ships its own Bun, currently 1.2.15, and
 # `packageManager` in package.json pins the project to that same version. Both

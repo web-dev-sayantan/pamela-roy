@@ -1,0 +1,36 @@
+// Cloudflare Workers — static assets.
+//
+// This file exists so `wrangler deploy` has a configuration to read. Without
+// it, wrangler finds no wrangler config, assumes the project is a Worker that
+// needs a build adapter, runs `astro add cloudflare`, and rebuilds with
+// @astrojs/cloudflare attached. That build fails in the adapter's prerender
+// step (miniflare: "The argument 'path' ... Received 'undefined'"). The Astro
+// build itself is fine either way — the failure lands after
+// "Success: Build command completed", in the deploy step.
+//
+// No `main` is set, and none is wanted. There is no Worker script: every route
+// is prerendered (`output: "static"`, getStaticPaths throughout, no SSR and no
+// API routes), so the site is 27 static files. Leaving `main` out also means
+// requests are served straight from asset storage with no Worker invocation
+// and no billable request.
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "pamela-roy",
+	"compatibility_date": "2026-09-28",
+	"assets": {
+		"directory": "./dist",
+		// Serve dist/404.html for an unmatched path, with a real 404 status.
+		// This is not automatic here the way it is on Pages — without this
+		// option an unmatched path returns a bare 404 with no page.
+		"not_found_handling": "404-page",
+		// Astro builds `about/index.html` (not `about.html`) because
+		// TRAILING_SLASH is false in src/lib/site.ts, so every internal link,
+		// canonical URL and sitemap entry is the extensionless /about.
+		//
+		// The default is "auto-trailing-slash", which serves a folder index
+		// *with* a trailing slash — that would 308-redirect /about to /about/
+		// and break the canonical URLs the sitemap and RSS feed publish.
+		// "drop-trailing-slash" serves the extensionless form directly.
+		"html_handling": "drop-trailing-slash"
+	}
+}
