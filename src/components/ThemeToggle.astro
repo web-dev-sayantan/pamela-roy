@@ -223,10 +223,9 @@
 	 */
 	:global(.js) .lamp:not([hidden]) {
 		display: inline-flex;
+		position: relative;
 		align-items: center;
 		gap: var(--sp-1);
-		/* The same voice as the MENU button beside it, so the two read as one
-		   pair of controls rather than a toggle that arrived from elsewhere. */
 		padding-block: 0.5em;
 		font-family: var(--font-ui);
 		font-size: var(--fs-label);
@@ -240,6 +239,21 @@
 
 	:global(.js) .lamp:not([hidden]):hover {
 		color: var(--ink);
+	}
+
+	/*
+	 * The lamp and the burger are the two marks a thumb has to find on a phone,
+	 * so they get the same answer: a 44px hit area grown with an overlay rather
+	 * than padding, which would push the glyph out of its optical centre. Below
+	 * 420px the label is clipped away and the button is little more than the
+	 * 16px shade — hit that narrowly, on a moving bus, it is close to unusable.
+	 * The 12px lands in the 24px gap to the burger's left, so the two targets
+	 * abut exactly and neither encroaches on the other.
+	 */
+	:global(.js) .lamp:not([hidden])::after {
+		content: '';
+		position: absolute;
+		inset: -12px;
 	}
 
 	.lamp__glyph {

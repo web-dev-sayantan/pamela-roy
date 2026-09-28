@@ -256,6 +256,49 @@ await load();
 	check('Escape closes the menu and returns focus',
 		closed.expanded === 'false' && closed.hidden === true && closed.focusOnButton);
 	check('closing the menu restores scrolling', closed.overflow === '');
+
+	/*
+	 * The same menu, opened *after* a scroll.
+	 *
+	 * This is not a second test of the same thing — it is the one thing a
+	 * reader does most often, and it is the one that was broken. The scrolled
+	 * header carries a backdrop-filter, and a filtered ancestor becomes the
+	 * containing block for its `position: fixed` descendants: with the panel
+	 * nested inside the header, `inset: 0` resolved against the header's own
+	 * 108px box and the menu opened as a sliver. So this asserts the panel
+	 * really does cover the viewport, and that the header is not its ancestor —
+	 * the second half is the cause, stated so a well-meaning re-nesting that
+	 * happens to still cover the viewport on an unscrolled page cannot pass.
+	 */
+	await evaluate(`scrollTo(0, 600)`);
+	await Bun.sleep(200);
+	await evaluate(`(() => {
+		const b = document.querySelector('.menu-button');
+		b.focus();
+		b.click();
+	})()`);
+	await Bun.sleep(400);
+	const scrolledOpen = await evaluate(`(() => {
+		const p = document.getElementById('menu-panel');
+		const r = p.getBoundingClientRect();
+		const link = document.querySelector('.menu-panel__link').getBoundingClientRect();
+		return {
+			fillsViewport: r.width >= innerWidth && r.height >= innerHeight,
+			linkOnScreen: link.top >= 0 && link.bottom <= innerHeight,
+			insideHeader: !!document.getElementById('site-header').contains(p),
+			headerBlurred: getComputedStyle(document.getElementById('site-header')).backdropFilter !== 'none',
+		};
+	})()`);
+	check('the menu still fills the screen once the page is scrolled',
+		scrolledOpen.fillsViewport && scrolledOpen.linkOnScreen,
+		`fills=${scrolledOpen.fillsViewport}, linkOnScreen=${scrolledOpen.linkOnScreen}`);
+	check('the panel is not inside the blurred header',
+		scrolledOpen.headerBlurred && !scrolledOpen.insideHeader,
+		`blurred=${scrolledOpen.headerBlurred}, nested=${scrolledOpen.insideHeader}`);
+
+	await evaluate(`scrollTo(0, 0)`);
+	await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`);
+	await Bun.sleep(300);
 }
 
 /* --- 5. newsletter form works without JS ----------------------------------- */

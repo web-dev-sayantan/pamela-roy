@@ -4,9 +4,12 @@
  *
  * The bar is transparent at the top of the page and warms to paper with a
  * soft blur once the reader has scrolled 8px. On narrow screens the nav
- * collapses behind a MENU button that opens a full-screen panel above the
+ * collapses behind a burger button that opens a full-screen panel above the
  * room frame; the panel traps focus, closes on Escape, and returns focus
  * to the button that opened it.
+ *
+ * The component renders two root elements, not one: the header, and the panel
+ * as its sibling. The blur is what forces that — see the note by the panel.
  */
 import { SITE, isCurrentPath } from '../lib/site';
 import ThemeToggle from './ThemeToggle.astro';
@@ -43,43 +46,118 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 		<div class="site-header__controls">
 			<ThemeToggle />
 
+			<!--
+				The burger carries the name, not a word: the label lives in
+				aria-label so the control is a named button to a screen reader and
+				to a pointer, and nothing on screen has to shout MENU to do it.
+				`title` is for the same reason the lamp sets one — a bare glyph
+				gives a hovering mouse nothing but its shape.
+			-->
 			<button
 				type="button"
-				class="menu-button"
+				class="icon-button menu-button"
 				aria-expanded="false"
 				aria-controls="menu-panel"
+				aria-label="Menu"
+				title="Menu"
 			>
-				Menu
+				<!--
+					Two hairlines, the site's own rule weight, rather than the
+					three-bar school icon: this is the same drawing language as the
+					rules between sections, so the header stays one voice. The
+					name is in the button, not the glyph.
+				-->
+				<svg
+					class="icon-button__glyph"
+					viewBox="0 0 24 24"
+					width="20"
+					height="20"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+					stroke-linecap="round"
+					aria-hidden="true"
+					focusable="false"
+				>
+					<path d="M4 9h16" />
+					<path d="M4 15h16" />
+				</svg>
 			</button>
-		</div>
-	</div>
-
-	<div id="menu-panel" class="menu-panel" role="dialog" aria-modal="true" aria-label="Site menu" hidden>
-		<div class="menu-panel__inner">
-			<button type="button" class="menu-panel__close" data-close>
-				Close <span aria-hidden="true">×</span>
-			</button>
-
-			<nav aria-label="Mobile">
-				<ul class="menu-panel__list">
-					{
-						SITE.nav.map((item) => (
-							<li>
-								<a
-									class="menu-panel__link"
-									href={item.href}
-									aria-current={isCurrent(item.href) ? 'page' : undefined}
-								>
-									{item.label}
-								</a>
-							</li>
-						))
-					}
-				</ul>
-			</nav>
 		</div>
 	</div>
 </header>
+
+<!--
+	The panel is a *sibling* of the header, not a child of it, and that placement
+	is load-bearing rather than tidiness.
+
+	`backdrop-filter` (like `transform`, `filter`, `perspective` and `contain`)
+	makes an element the containing block for its `position: fixed` descendants.
+	So the moment the header gains its scrolled-state blur, the panel inside it
+	stopped resolving `inset: 0` against the viewport and started resolving it
+	against the header's own box — 108px tall — and the menu opened as a sliver
+	only once the reader had scrolled. Kept out here, the panel's containing block
+	is the viewport at every scroll position, and the header can be given whatever
+	filter it likes.
+
+	It is also where a modal dialog belongs: `role="dialog"` is not part of the
+	header's contents, and a full-screen overlay announced as such should not be
+	buried inside the banner landmark.
+-->
+<div id="menu-panel" class="menu-panel" role="dialog" aria-modal="true" aria-label="Site menu" hidden>
+	<div class="menu-panel__inner shell">
+		<div class="menu-panel__bar">
+			<!--
+				The dismissal is the burger's other half, so it is drawn the same
+				way and given the same name-in-the-attribute treatment. The ×
+				spans the same 16 units of the same 24-unit box as the burger's
+				lines, which is what makes the two marks the same size on screen
+				rather than merely the same nominal one.
+			-->
+			<button
+				type="button"
+				class="icon-button menu-panel__close"
+				data-close
+				aria-label="Close menu"
+				title="Close menu"
+			>
+				<svg
+					class="icon-button__glyph"
+					viewBox="0 0 24 24"
+					width="20"
+					height="20"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+					stroke-linecap="round"
+					aria-hidden="true"
+					focusable="false"
+				>
+					<path d="M4 4l16 16" />
+					<path d="M20 4L4 20" />
+				</svg>
+			</button>
+		</div>
+
+		<nav aria-label="Mobile">
+			<ul class="menu-panel__list">
+				{
+					SITE.nav.map((item) => (
+						<li>
+							<a
+								class="menu-panel__link"
+								href={item.href}
+								aria-current={isCurrent(item.href) ? 'page' : undefined}
+							>
+								{item.label}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</nav>
+	</div>
+</div>
 
 <script>
 	/**
@@ -126,6 +204,10 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 	let panel: HTMLElement | null = null;
 	let closeButton: HTMLButtonElement | null = null;
 	let lastFocused: HTMLElement | null = null;
+	let closeTimer: number | null = null;
+
+	const prefersReducedMotion = () =>
+		matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 	/* Only elements that can actually take focus, so the trap wraps between
 	   real tab stops rather than between whatever happened to match. */
@@ -159,6 +241,12 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 
 	function openMenu() {
 		if (!panel || !openButton) return;
+		// Cancel a close that is still fading out: the panel is on screen,
+		// just transparent, so re-opening is showing it again, not rebuilding it.
+		if (closeTimer !== null) {
+			clearTimeout(closeTimer);
+			closeTimer = null;
+		}
 		// Focus is restored to whatever held it, which is the toggle itself
 		// when the panel was opened by pointer. activeElement is typed as
 		// Element because it can be the document, so it is narrowed here.
@@ -167,19 +255,54 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 		openButton.setAttribute('aria-expanded', 'true');
 		document.body.style.overflow = 'hidden';
 		document.addEventListener('keydown', onKeydown);
-		closeButton?.focus();
+		// Forced reflow between unhiding (opacity 0) and opening (opacity 1)
+		// is what the transition interpolates across. A double rAF would do
+		// the same a frame later, but visibility is hidden until .is-open
+		// lands — and a button inside visibility: hidden cannot take focus,
+		// so focusing first would silently fail.
+		void panel.offsetWidth;
+		panel.classList.add('is-open');
+		closeButton?.focus({ preventScroll: true });
 	}
 
 	function closeMenu() {
 		if (!panel || !openButton) return;
-		panel.hidden = true;
+		if (panel.hidden && !panel.classList.contains('is-open')) return;
+		panel.classList.remove('is-open');
 		openButton.setAttribute('aria-expanded', 'false');
-		document.body.style.overflow = '';
 		document.removeEventListener('keydown', onKeydown);
-		lastFocused?.focus();
+
+		const done = () => {
+			closeTimer = null;
+			if (!panel || !openButton) return;
+			// A re-open during the fade wins: hidden stays off.
+			if (openButton.getAttribute('aria-expanded') === 'true') return;
+			panel.hidden = true;
+			document.body.style.overflow = '';
+			lastFocused?.focus({ preventScroll: true });
+			lastFocused = null;
+		};
+
+		// Reduced motion makes the fade instant, so there is no frame to
+		// wait for — hiding now avoids a fully transparent overlay that
+		// still eats pointer events for 300ms.
+		if (prefersReducedMotion()) {
+			done();
+			return;
+		}
+		if (closeTimer !== null) clearTimeout(closeTimer);
+		// The closing fade is 200ms (see the base .menu-panel rule; opening
+		// is the slower 300ms), so 240ms lands just after it without holding
+		// a transparent overlay over the page.
+		closeTimer = window.setTimeout(done, 240);
 	}
 
 	perPage(() => {
+		if (closeTimer !== null) {
+			clearTimeout(closeTimer);
+			closeTimer = null;
+		}
+		document.body.style.overflow = '';
 		header = document.getElementById('site-header');
 		openButton = document.querySelector<HTMLButtonElement>('.menu-button');
 		panel = document.getElementById('menu-panel');
@@ -292,8 +415,8 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 		transform: scaleX(1);
 	}
 
-	/* The lamp and the MENU button are one cluster at the right-hand end, so
-	   they hold a single gap between them rather than the bar's `space-between`
+	/* The lamp and the burger are one cluster at the right-hand end, so they
+	   hold a single gap between them rather than the bar's `space-between`
 	   deciding their distance. */
 	.site-header__controls {
 		display: flex;
@@ -301,49 +424,101 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 		gap: var(--sp-4);
 	}
 
-	/* The MENU button only exists where the inline nav does not. */
+	/* One control box, shared by the burger that opens the panel and the × that
+	   dismisses it. With no word in either, the button *is* the glyph: a 20px
+	   square whose right edge sits on the shell edge, so the two swap in place
+	   and the pair reads as one mark drawn twice. */
+	.icon-button {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--ink);
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	/* A 20px mark is a 20px target, which is no target at all. The hit area is
+	   grown to 44px — the smallest square a thumb can be trusted to hit — with
+	   an overlay rather than padding, because padding would push the glyph inward
+	   off the shell edge and undo the alignment above. The 12px lands in the
+	   empty 24px gap between the burger and the lamp, and in the panel's own
+	   empty margin, so it takes nothing away from a neighbour's target. */
+	.icon-button::after {
+		content: '';
+		position: absolute;
+		inset: -12px;
+	}
+
+	.icon-button__glyph {
+		flex: none;
+	}
+
+	.icon-button:hover {
+		color: var(--ember);
+	}
+
+	/* The burger exists only where the inline nav does not. */
 	.menu-button {
 		display: none;
-		font-family: var(--font-ui);
-		font-size: var(--fs-label);
-		font-weight: 500;
-		letter-spacing: var(--track-label);
-		text-transform: uppercase;
-		color: var(--ink);
-		padding-block: 0.5em;
 	}
 
 	/* The mobile panel covers the whole viewport above the frame, with its
-	   own frame clearance so no link ever touches the casing. */
+	   own frame clearance so no link ever touches the casing. Opacity only —
+	   §9 allows nothing that triggers layout — with visibility delayed so a
+	   fading panel stops taking pointer events the moment it starts closing.
+	   Opening runs the slower --t-base; closing is deliberately quicker
+	   (200ms) so the room answers the moment the reader dismisses it.
+
+	   `inset: 0` here means the *viewport*, and that is only true because the
+	   panel is not a descendant of the header: the scrolled header carries a
+	   backdrop-filter, and any filtered ancestor would capture this box. Keep
+	   the panel a sibling of <header>, not a child — see the note in the
+	   markup, and the check in scripts/behaviour.ts that holds it there. */
 	.menu-panel {
 		position: fixed;
 		inset: 0;
 		z-index: 300;
 		overflow-y: auto;
 		background: var(--paper);
+		opacity: 0;
+		visibility: hidden;
+		transition:
+			opacity 200ms var(--ease-out),
+			visibility 0s linear 200ms;
 	}
 
+	.menu-panel.is-open {
+		opacity: 1;
+		visibility: visible;
+		transition:
+			opacity var(--t-base) var(--ease-out),
+			visibility 0s;
+	}
+
+	/* Same top gutter and same bar height as the header, inside the same
+	   centred shell, right-aligned to the same inline edge the burger's mark
+	   sits on and centred in the same 76px — so opening the panel swaps one
+	   mark for the other in place. */
 	.menu-panel__inner {
 		display: flex;
 		flex-direction: column;
 		gap: var(--sp-6);
 		min-height: 100%;
-		padding: calc(var(--gutter) + var(--sp-4)) var(--gutter);
+		padding-block: var(--gutter) var(--gutter);
 	}
 
-	.menu-panel__close {
-		align-self: flex-end;
-		font-family: var(--font-ui);
-		font-size: var(--fs-label);
-		font-weight: 500;
-		letter-spacing: var(--track-label);
-		text-transform: uppercase;
-		color: var(--ink);
+	.menu-panel__bar {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		min-height: var(--header-h);
 	}
 
-	.menu-panel__close span {
-		font-size: 1.2em;
-		line-height: 1;
+	/* The × is optically centred on the mark, not the box: a stroked diagonal
+	   reads low, so it is lifted a hair to sit on the same optical centre as
+	   the burger's horizontal lines. Transform only, so nothing reflows. */
+	.menu-panel__close .icon-button__glyph {
+		transform: translateY(-0.5px);
 	}
 
 	.menu-panel__list {
@@ -352,6 +527,45 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 		gap: var(--sp-2);
 		list-style: none;
 		padding: 0;
+	}
+
+	/* Links rise a breath as the panel fades in, staggered, and leave
+	   together — one shared duration, opacity and transform only. */
+	.menu-panel__list > li {
+		opacity: 0;
+		transform: translateY(10px);
+		transition:
+			opacity var(--t-base) var(--ease-out),
+			transform var(--t-base) var(--ease-out);
+	}
+
+	.menu-panel.is-open .menu-panel__list > li {
+		opacity: 1;
+		transform: none;
+	}
+
+	.menu-panel.is-open .menu-panel__list > li:nth-child(1) {
+		transition-delay: 60ms;
+	}
+
+	.menu-panel.is-open .menu-panel__list > li:nth-child(2) {
+		transition-delay: 100ms;
+	}
+
+	.menu-panel.is-open .menu-panel__list > li:nth-child(3) {
+		transition-delay: 140ms;
+	}
+
+	.menu-panel.is-open .menu-panel__list > li:nth-child(4) {
+		transition-delay: 180ms;
+	}
+
+	.menu-panel.is-open .menu-panel__list > li:nth-child(5) {
+		transition-delay: 220ms;
+	}
+
+	.menu-panel.is-open .menu-panel__list > li:nth-child(n + 6) {
+		transition-delay: 260ms;
 	}
 
 	/* Big Fraunces links, sentence case — the menu is chrome, not a second
@@ -378,8 +592,12 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 			display: none;
 		}
 
+		/* The burger arrives where the inline nav leaves. Its 44px target is
+		   also why it only appears once the nav it stands in for is gone: at
+		   desktop widths the links are the better target and there is room for
+		   both. */
 		.menu-button {
-			display: inline-block;
+			display: inline-flex;
 		}
 	}
 </style>

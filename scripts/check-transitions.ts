@@ -234,14 +234,16 @@ await cdp.goto(`${ORIGIN}/`);
 	// The menu, on a narrow viewport where it is the only navigation.
 	await cdp.viewport(480, 800);
 	await follow('/contact');
-	const menu = await cdp.evaluate<{ opened: boolean; locked: string; closed: boolean }>(`(() => {
+	const menu = await cdp.evaluate<{ opened: boolean; locked: string; closed: boolean }>(`(() => new Promise((ok) => {
 		document.querySelector('.menu-button').click();
 		const panel = document.getElementById('menu-panel');
 		const opened = !panel.hidden && document.querySelector('.menu-button').getAttribute('aria-expanded') === 'true';
 		const locked = document.body.style.overflow;
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-		return { opened, locked, closed: panel.hidden && document.body.style.overflow === '' };
-	})()`);
+		// Closing fades out before hiding, so the closed state lands after
+		// the fade rather than in the same frame as Escape.
+		setTimeout(() => ok({ opened, locked, closed: panel.hidden && document.body.style.overflow === '' }), 400);
+	}))()`);
 	check('the mobile menu still opens on a crossfaded page', menu.opened && menu.locked === 'hidden');
 	check('and still closes on Escape', menu.closed);
 

@@ -4,6 +4,10 @@ description: Notes towards an essay about manuscripts returned unpublished, and 
 publishDate: 2026-09-20
 topic: process
 tags: [books, rejection, research]
+# A path relative to this file, resolved and optimised by astro:assets — the
+# plate is only the fallback for a piece with no picture. See covers/.
+cover: ./covers/getting-a-book-back.webp
+coverAlt: A brown paper envelope tied with black cord and sealed with a red wax stamp, addressed in type to a returned manuscript.
 draft: true
 ---
 
