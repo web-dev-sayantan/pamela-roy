@@ -1,0 +1,49 @@
+---
+/**
+ * One piece of writing.
+ *
+ * The route is a rest parameter because the collection's ids are already
+ * paths — `2026/the-wrong-way-opens-doors` — so the URL of an essay is its
+ * file's path, which keeps the archive browsable on disk and stable on the web.
+ *
+ * Everything an article needs to close itself off is queried here rather than
+ * in the layout, so the layout stays a presentation concern.
+ */
+import { render } from 'astro:content';
+
+import WritingLayout from '../../layouts/WritingLayout.astro';
+import { allWritings, moreLikeThis, neighbours } from '../../lib/writings';
+
+export async function getStaticPaths() {
+	const entries = await allWritings();
+
+	return entries.map((entry) => ({
+		params: { id: entry.id },
+		props: { entry, all: entries },
+	}));
+}
+
+const { entry, all } = Astro.props;
+
+/* `render()` turns Markdown into a component and, as a bonus, hands back the
+   heading tree the table of contents is built from. One call therefore serves
+   the body and the contents, which cannot then disagree about the piece. */
+const { Content, headings } = await render(entry);
+
+const { previous, next } = neighbours(entry, all);
+const similar = await moreLikeThis(entry);
+
+/* The tail of the index: the most recent pieces other than this one, so an
+   essay is never the only thing on the page. */
+const recent = all.filter((candidate) => candidate.id !== entry.id).slice(0, 5);
+---
+
+<WritingLayout
+	entry={entry}
+	{Content}
+	{headings}
+	{previous}
+	{next}
+	similar={similar}
+	recent={recent}
+/>

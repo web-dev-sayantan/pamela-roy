@@ -1,11 +1,114 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+/**
+ * The home page — the room, the manifesto, and a reason to keep reading.
+ *
+ * Four movements, in the order a visitor needs them: what this place is, who
+ * is speaking, what has been written lately, and how to hire her. The
+ * newsletter closes it because a letter is the thing a reader actually
+ * comes back for.
+ *
+ * Section spacing and heading type come from .section in utilities.css, so
+ * this file is only the copy and the composition.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Manifesto from '../components/Manifesto.astro';
+import WritingGrid from '../components/WritingGrid.astro';
+import ServiceCard from '../components/ServiceCard.astro';
+import Newsletter from '../components/Newsletter.astro';
+
+import { allWritings, featuredWritings } from '../lib/writings';
+import { featuredServices } from '../lib/services';
+import { SITE } from '../lib/site';
+import { personLd, websiteLd } from '../lib/seo';
+import JsonLd from '../components/JsonLd.astro';
+
+const writings = (await allWritings()).slice(0, 4);
+
+/* The teaser shows the first two offers and never a third: the home page is
+   the argument, not the catalogue. */
+const services = await featuredServices(2);
+
+/**
+ * If a featured piece has a cover, the hero takes it. Today none do, so the
+ * hero is typographic — which is the intended state, not a missing feature.
+ */
+const [hero] = await featuredWritings();
+
+/*
+ * The document title is the site name, so BaseHead's template leaves it alone
+ * rather than appending "· Pamela Roy" to a title that already is that. What
+ * goes in the search result and on the shared card is the tagline, which is the
+ * same sentence the footer carries.
+ */
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<BaseLayout title={SITE.name} description={SITE.tagline}>
+	<JsonLd data={websiteLd(Astro.site)} />
+	<JsonLd data={personLd(Astro.site)} />
+
+	<SiteHeader />
+
+	<main id="main">
+		<Manifesto cover={hero?.data.cover} coverAlt={hero?.data.coverAlt} />
+
+		{/* ---------------------------------------------------------- who --- */}
+		<section class="section shell">
+			<div class="section__head" data-reveal>
+				<p class="label">Who I am</p>
+				<h2 class="section__heading">I keep the lamp on, and the door open.</h2>
+			</div>
+
+			<div class="section__body" data-reveal style="--i: 1">
+				<p>
+					I have been writing long enough that the technique has mostly gone
+					out of it. What is left is patience, and a fairly short list of
+					sentences I trust.
+				</p>
+				<p>
+					Everything I have written is filed in the library, newest first, and
+					none of it is behind a sign-up form. There is a way in from the side
+					if you would rather skip the newest and go looking.
+				</p>
+			</div>
+		</section>
+
+		{/* ----------------------------------------------------- the library --- */}
+		<section class="section shell">
+			<div class="section__head" data-reveal>
+				<p class="label">Latest</p>
+				<h2 class="section__heading">What is new on the desk.</h2>
+				<a class="section__link" href="/library">The whole library</a>
+			</div>
+
+			<div data-reveal style="--i: 1">
+				<WritingGrid items={writings} />
+			</div>
+		</section>
+
+		{/* --------------------------------------------------------- services --- */}
+		<section class="section shell">
+			<div class="section__head" data-reveal>
+				<p class="label">How I can help</p>
+				<h2 class="section__heading">
+					If the book needs writing, I can write it.
+				</h2>
+			</div>
+
+			<div data-reveal style="--i: 1">
+				<ServiceCard items={services} compact />
+			</div>
+		</section>
+
+		{/* ------------------------------------------------------ newsletter --- */}
+		<section class="section shell">
+			<div data-reveal>
+				<Newsletter />
+			</div>
+		</section>
+	</main>
+
+	<SiteFooter />
+</BaseLayout>

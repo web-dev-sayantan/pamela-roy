@@ -1,0 +1,162 @@
+---
+/**
+ * SignupForm — the one place on the site that asks for an email address.
+ *
+ * It is a component because the same form appears twice: in the quiet panel at
+ * the foot of a page, and at length on /newsletter. Forking it would mean two
+ * copies of the provider URL, the privacy note and the validation, and the two
+ * would drift — the privacy note is exactly the string that must not drift.
+ *
+ * The form posts to Buttondown, which means it works with JavaScript disabled;
+ * that is the one piece of behaviour here that actually matters. The script
+ * only adds inline validation. It never fakes a success state it cannot know
+ * about, because a form that says "you are subscribed" and is not is worse
+ * than no form at all.
+ *
+ * Ids are namespaced by `id` so two forms can share a page without colliding.
+ * There is only one per page today; the parameter is there so that stays true
+ * by construction rather than by care.
+ */
+import Button from './Button.astro';
+
+interface Props {
+	/** Namespaces the element ids. Defaults to the only form on the page. */
+	id?: string;
+}
+
+const { id = 'signup' } = Astro.props;
+
+// Swap for the real account when it is confirmed.
+const BOTTOMDOWN_URL = 'https://buttondown.com/api/emails/embed-subscribe/PamelaRoy';
+---
+
+<form class="signup" id={`${id}-form`} method="post" action={BOTTOMDOWN_URL} novalidate>
+	<label class="visually-hidden" for={`${id}-email`}>Email address</label>
+	<input
+		class="field signup__input"
+		id={`${id}-email`}
+		type="email"
+		name="email"
+		placeholder="you@example.com"
+		autocomplete="email"
+		required
+		aria-describedby={`${id}-note ${id}-error`}
+	/>
+	<Button type="submit">Subscribe</Button>
+</form>
+
+<p class="signup__error" id={`${id}-error`} role="status" hidden></p>
+
+<p class="signup__note" id={`${id}-note`}>
+	No tracking, no cookies, and your address is not shared with anyone.
+</p>
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+
+	// Enhancement only: the form already posts to the provider without this.
+	// Validate in place so a typo does not cost a round trip, and never
+	// pretend the subscription succeeded.
+	//
+	// Per page, because a navigation brings a new form and does not re-run
+	// this script for it.
+	perPage(() => {
+		const form = document.getElementById('signup-form') as HTMLFormElement | null;
+		const input = document.getElementById('signup-email') as HTMLInputElement | null;
+		const error = document.getElementById('signup-error');
+
+		form?.addEventListener('submit', (event) => {
+			const value = input?.value.trim() ?? '';
+			// Deliberately permissive: this catches typos and empty fields, and
+			// defers anything subtler to the provider.
+			const looksRight = value.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+			if (looksRight) {
+				error?.setAttribute('hidden', '');
+				return;
+			}
+
+			event.preventDefault();
+			if (error) {
+				error.textContent = 'That address does not look complete. Mind checking it.';
+				error.removeAttribute('hidden');
+			}
+			input?.focus();
+		});
+	});
+</script>
+
+<style>
+	.signup {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-3);
+		width: 100%;
+		max-width: 30rem;
+	}
+
+	/* The field's own box model is the shared `.field` class in utilities.css;
+	   this is only how it takes part in the row. */
+	.signup__input {
+		flex: 1 1 14rem;
+	}
+
+	.signup__error {
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		color: var(--ember);
+	}
+
+	.signup__note {
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		line-height: 1.5;
+		color: var(--ink-muted);
+		max-width: 40ch;
+	}
+
+	@media (max-width: 480px) {
+		/* Below this the input and the button cannot share a line without the
+		   input becoming a sliver, so they stack full-width. */
+		.signup {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		/* The stacked form's main axis is vertical, so the input's
+		   `flex: 1 1 14rem` would set its *height* to 14rem and leave a
+		   224px-tall box on every phone. Reset to content sizing, and let
+		   `align-items: stretch` give it the full width instead. */
+		.signup__input {
+			flex: 0 0 auto;
+		}
+
+		.signup :global(.btn) {
+			text-align: center;
+		}
+	}
+</style>

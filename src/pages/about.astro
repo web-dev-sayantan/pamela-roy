@@ -1,0 +1,99 @@
+---
+/**
+ * /about — who Pamela is.
+ *
+ * Every word of the page is in src/content/pages/about.md. What lives here is
+ * the part that is genuinely this route's: the portrait slot, and the row of
+ * links out of the room at the foot. Both are chrome that four pages share in
+ * different combinations, which is why the shared parts are components and not
+ * four copies in four files.
+ *
+ * There is no portrait to ship, so the slot sets the same typographic plate a
+ * shelf card uses for a piece with no cover. Add `portrait:` to the frontmatter
+ * and the plate is replaced by the photograph; nothing here changes.
+ */
+import { Picture } from 'astro:assets';
+
+import StaticPage from '../layouts/StaticPage.astro';
+import Elsewhere from '../components/Elsewhere.astro';
+import Plate from '../components/Plate.astro';
+
+import { pageById } from '../lib/pages';
+import { SITE } from '../lib/site';
+import { personLd, websiteLd } from '../lib/seo';
+import JsonLd from '../components/JsonLd.astro';
+
+const page = await pageById('about');
+---
+
+<StaticPage page={page}>
+	{/* The one page with a person in it, so it is the one page that describes
+	    one. Both blocks are here rather than in the layout because "this route
+	    is about a person" is a fact about this route and about no other. The
+	    `@id`s match the ones lib/seo hands to every BlogPosting as its author,
+	    so a search engine can tell the two are the same entity. */}
+	<Fragment slot="head">
+		<JsonLd data={personLd(Astro.site)} />
+		<JsonLd data={websiteLd(Astro.site)} />
+	</Fragment>
+
+	<Fragment slot="lede">
+		<div class="portrait">
+			{
+				page.data.portrait ? (
+					<Picture
+						src={page.data.portrait}
+						alt={page.data.portraitAlt ?? ''}
+						formats={['avif', 'webp']}
+						loading="eager"
+						decoding="async"
+						widths={[240, 380, 520]}
+						sizes="(max-width: 640px) 60vw, 16rem"
+					/>
+				) : (
+					<Plate label={SITE.name} size="s" />
+				)
+			}
+		</div>
+	</Fragment>
+
+	<Fragment slot="after">
+		<hr class="rule" />
+
+		<Elsewhere label="The address" />
+	</Fragment>
+</StaticPage>
+
+<style>
+	/* The same 4:5 plate a shelf card uses, at portrait size. Sized so the
+	   name on it sets on one line at card-title scale. */
+	.portrait {
+		position: relative;
+		width: min(100%, 18rem);
+		aspect-ratio: 4 / 5;
+		margin-block-end: var(--sp-6);
+		overflow: hidden;
+		border-radius: 2px;
+		background: var(--paper-deep);
+	}
+
+	.portrait :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		/* The site's one photography filter — see --filter-cover in
+		   tokens.css, so a portrait shot on a different day and a different
+		   camera still belongs to the same shelf. */
+		filter: var(--filter-cover);
+	}
+
+	@media (max-width: 560px) {
+		/* A 4:5 plate at desktop width is 360px tall, which is 43% of a
+		   phone screen spent on a name before the first sentence. Halved, it
+		   reads as the name card it is. The shape is unchanged, so a
+		   photograph dropped in later does not jump. */
+		.portrait {
+			width: min(100%, 13rem);
+		}
+	}
+</style>

@@ -1,0 +1,201 @@
+/* =============================================================================
+   utilities.css — the handful of primitives every page and component reuses.
+   Deliberately small: a design this typographic needs a type scale, not a
+   utility grab-bag.
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ shell ---
+   The frame is a fixed overlay, so content opts *in* to being held inside it
+   by way of matching padding. This is the one container that guarantees no
+   element ever sits under the casing. */
+.shell {
+	width: 100%;
+	max-width: calc(var(--measure-wide) + var(--frame-w) * 2);
+	margin-inline: auto;
+	padding-inline: var(--frame-w);
+}
+
+/* ------------------------------------------------------------------ stack ---
+   Vertical rhythm without margin soup. Set --stack on the element to change
+   the gap; adjacent siblings get it, everything else stays flush. */
+.stack {
+	display: flow-root;
+}
+
+.stack > * + * {
+	margin-block-start: var(--stack, var(--sp-4));
+}
+
+/* ---------------------------------------------------------------- section ---
+   The vertical rhythm between the parts of a page, and the eyebrow + heading
+   pair that opens each one. Shared by every page so the spacing and the type
+   of a section heading are decided once and cannot drift. */
+.section {
+	padding-block: var(--sp-section);
+}
+
+/* Sections sit directly above one another, so the lower half of a pair would
+   otherwise double the gap. */
+.section + .section {
+	padding-block-start: 0;
+}
+
+/* A section that opens straight onto content — a hairline, a list, a
+   checklist — has no heading to justify the full section rhythm above it, and
+   a page head has already closed with its own bottom space. Paying
+   --sp-section on top of that opens a void roughly 185px deep. Sections that
+   do open with a heading keep the full breath; the air belongs to the
+   heading, not to the gap before it. */
+.section--flush {
+	padding-block-start: var(--sp-6);
+}
+
+/* The last thing on a page should not leave a screen's worth of air beneath
+   it before the footer. */
+.section:last-of-type {
+	padding-block-end: var(--sp-6);
+}
+
+.section__head {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--sp-3);
+	max-width: var(--measure);
+	margin-block-end: var(--sp-6);
+}
+
+/* Section headings are Fraunces at display-m, in sentence case. Per §5.2
+   uppercase is rationed to the hero and the page title, so this stays
+   lowercase — the emphasis comes from the size, not the volume. */
+.section__heading {
+	font-size: var(--fs-display-m);
+	line-height: var(--lh-heading);
+	max-width: 22ch;
+	text-wrap: balance;
+}
+
+.section__body {
+	color: var(--ink-soft);
+	max-width: var(--measure);
+}
+
+.section__body > * + * {
+	margin-block-start: 1.1em;
+}
+
+/* The quiet way out of a section, in the small tracked voice. */
+.section__link {
+	display: inline-block;
+	margin-block-start: var(--sp-2);
+	font-family: var(--font-ui);
+	font-size: var(--fs-label);
+	font-weight: 500;
+	letter-spacing: var(--track-label);
+	text-transform: uppercase;
+	color: var(--ink);
+	text-decoration: none;
+}
+
+.section__link::after {
+	content: ' →';
+	display: inline-block;
+	transition: transform var(--t-base) var(--ease-out);
+}
+
+.section__link:hover {
+	color: var(--ember);
+}
+
+.section__link:hover::after {
+	transform: translateX(0.25em);
+}
+
+/* ------------------------------------------------------------------- rule ---
+   Short hairlines, not full-width dividers. Cheaper, and more designed. */
+.rule {
+	width: 4rem;
+	height: 1px;
+	border: 0;
+	background: var(--rule);
+}
+
+/* ----------------------------------------------------------------- field ---
+   The site's one input style: a recessed paper ground, a hairline, and an
+   ember edge when it has focus. Shared by the signup field and the contact
+   form so a reader who has typed in one has not met a different box in the
+   other, and so the rule is written once rather than once per form. */
+.field {
+	width: 100%;
+	min-width: 0;
+	padding: 0.95em 1em;
+	font-family: var(--font-ui);
+	font-size: var(--fs-small);
+	line-height: var(--lh-ui);
+	color: var(--ink);
+	background: var(--paper-raised);
+	border: 1px solid var(--rule);
+	border-radius: 2px;
+	transition: border-color var(--t-micro) var(--ease-out);
+}
+
+.field::placeholder {
+	color: var(--ink-muted);
+}
+
+.field:hover {
+	border-color: var(--ink-muted);
+}
+
+.field:focus-visible {
+	border-color: var(--ember);
+}
+
+/* ------------------------------------------------------------------ label ---
+   The one place uppercase is allowed below the page title: micro-labels.
+   §5.2 rations shouting to the hero manifesto and the page title, and this is
+   the small, tracked cousin of that voice — never an h-level element. */
+.label {
+	font-family: var(--font-ui);
+	font-size: var(--fs-label);
+	font-weight: 500;
+	letter-spacing: var(--track-label);
+	line-height: var(--lh-ui);
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+
+/* --------------------------------------------------------- visually-hidden ---
+   Available to assistive tech, invisible on screen, and still focusable when
+   it needs to be (the skip link uses this plus :focus overrides). */
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ----------------------------------------------------------------- hearth ---
+   Move 3 — the warm bloom behind the home hero and page titles. It should be
+   impossible to consciously notice; you should only feel that the middle of
+   the page is warmer. Requires a positioned ancestor, and is always
+   aria-hidden and pointer-inert because it carries no information. */
+.hearth {
+	position: absolute;
+	inset-inline: 0;
+	top: -10%;
+	height: 70%;
+	pointer-events: none;
+	z-index: 0;
+	background: radial-gradient(
+		60% 100% at 50% 0%,
+		color-mix(in srgb, var(--hearth) 55%, transparent) 0%,
+		transparent 70%
+	);
+	filter: blur(12px);
+}

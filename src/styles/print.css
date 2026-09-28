@@ -1,0 +1,308 @@
+/* =============================================================================
+   print.css — what the essays look like on paper.
+
+   Pamela will want to print her own work, and it should come out looking like
+   the site rather than like a web page that happens to be on paper. That means
+   a real decision about what survives: the essay does, the furniture does not.
+
+   Imported once, from BaseLayout, and entirely inside @media print — so it
+   costs a browser nothing until someone actually hits print, and a reader never
+   has to know this file exists.
+
+   Three things are not obvious and are the reason this is a file rather than a
+   paragraph in base.css:
+
+   1. Night mode has to be overridden by hand. The page carries
+      `data-theme="night"`, whose selector is more specific than a bare `:root`,
+      so a `:root { --ink: … }` in here loses to it and a night-mode reader
+      prints a page of cream ink on white paper — which is to say, no ink at
+      all. The override below deliberately matches the specificity of the rule
+      it is replacing rather than out-specifying it.
+
+   2. `--paper` becomes white here, which is the one place the "no pure white"
+      rule does not apply. The anti-goal in §13 is about the screen design; on
+      paper, #F2EDE4 is a 4% warm wash over every page, which wastes toner and
+      prints as a grey block behind the text. Paper is paper.
+
+   3. The page URL cannot be produced by CSS. There is no @page margin box in
+      any browser that ships today, so the address is a real element in the
+      markup — `.print-url`, written by BaseLayout and hidden on screen — and
+      this file only decides that it is worth showing.
+   ========================================================================== */
+
+/* Off screen, unconditionally. The one rule that belongs to this file but not
+   inside the @media block, because it is the screen's half of the pair: the
+   address is in the markup at all times and hidden until paper asks for it. */
+.print-url {
+	display: none;
+}
+
+@media print {
+	/* ------------------------------------------------------------ palette --- */
+	/* Same selector, same specificity, day values. See note 1 above. */
+	:root,
+	:root[data-theme='night'] {
+		--paper: #fff; /* see note 2 — the one deliberate exception */
+		--paper-deep: #fff;
+		--paper-raised: #fff;
+		--frame: transparent;
+		--ink: #221e1a;
+		--ink-soft: #221e1a;
+		--ink-muted: #4a423a;
+		/* Darker than the screen's hairline, and deliberately. On a display a
+		   2.2:1 rule is a hairline; on paper it is very often nothing at all,
+		   and the one rule that matters here is the one separating the address
+		   from the end of the essay. 3.2:1 is still visibly quiet and reliably
+		   prints. */
+		--rule: #9a8e79;
+		--ember: #8a3a18;
+		--ember-bright: #8a3a18;
+		--ember-wash: #fff;
+		--hearth: transparent;
+		--pine: #2f3d33;
+		--pine-wash: #fff;
+		--frame-w: 0px;
+		--header-h: 0px;
+	}
+
+	html,
+	body {
+		background: #fff;
+	}
+
+	/* A page is not a screen: nothing scrolls, and there is no fixed frame
+	   hovering over the top-right of every sheet. */
+	html {
+		scroll-behavior: auto;
+	}
+
+	body {
+		min-height: 0;
+		font-size: 11.5pt;
+		line-height: 1.5;
+	}
+
+	@page {
+		/* 18mm is roughly the unprintable margin of a home printer on A4 and
+		   Letter, so the text lands inside the paper rather than being clipped
+		   by the printer's own margin — which the browser would not know about. */
+		margin: 18mm;
+	}
+
+	/* -------------------------------------------------------- the measure ---
+	   The reading column is what a reader wants on paper: one comfortable
+	   measure of type, not a 68rem shelf with a 48px casing and a third of the
+	   page empty. The measure itself already lives on .prose.
+
+	   The shell is capped to the measure and centred, rather than left full
+	   width with the prose centred inside it. The difference is not cosmetic:
+	   `.writing__body` is a grid, and a grid item's auto margins do not resolve
+	   the same way in Chrome's paged layout as in an emulated print viewport —
+	   the viewport probe reported the column centred at x=125 while the printed
+	   page put it flush left against the margin. Auto margins on a plain block
+	   box always centre, so the shell is the level to do it at. */
+	.shell,
+	.page-head__inner {
+		max-width: 34rem;
+		padding-inline: 0;
+		margin-inline: auto;
+	}
+
+	.prose,
+	.writing__content,
+	.section__body {
+		max-width: 34rem;
+	}
+
+	.writing__body,
+	.page-head,
+	.section,
+	.writing__head,
+	.writing__tail {
+		padding-block: 0;
+		margin-block: 0;
+	}
+
+	/* The article body, the head and the tail are all `.shell` elements, so the
+	   rule above centres them. This only has to take the *grid* off the body: a
+	   one-column grid with a sticky aside that is already hidden is a layout
+	   with no reason to exist on paper, and the track it reserves is the reason
+	   the column used to sit flush against the margin. */
+	.writing__body {
+		display: block;
+	}
+
+	/* ------------------------------------------------------------- hidden ---
+	   Everything that is furniture on a screen and nothing on a page. Listed by
+	   role rather than by selector where possible, so a new component is
+	   hidden by default rather than by being remembered. */
+	.site-header,
+	.site-footer,
+	.progress,
+	.grain,
+	.skip-link,
+	.menu-button,
+	.menu-panel,
+	.hearth,
+	/* The newsletter panel, the signup form and the address row: three ways to
+	   sign up or write, none of which mean anything on a sheet of paper. */
+	.newsletter,
+	.signup,
+	.elsewhere,
+	.issues,
+	.subscribe,
+	/* Form controls and their buttons. A printed empty text box is worse than
+	   no text box. */
+	.btn,
+	.field,
+	/* The neighbours, the sibling cards and the catalogue tail: three ways
+	   onward, all of which are screen affordances. The address at the foot
+	   covers where this came from. */
+	.writing__tail,
+	.service__foot,
+	.service__aside,
+	/* A cover photograph is half a sheet of toner for a picture the reader
+	   already has in front of them, and it is the most likely thing to split a
+	   page down the middle. Left out on purpose. */
+	.writing__cover,
+	.writing__tags,
+	.toc,
+	.writing__aside,
+	/* Filter controls and a card shelf have no meaning in ink. */
+	.filter,
+	.shelf {
+		display: none !important;
+	}
+
+	/* The frame is a fixed overlay in the first place, so it needs removing
+	   explicitly — hiding .site-header does not touch body::after. */
+	body::after {
+		display: none !important;
+	}
+
+	/* Reveals are a screen effect. Under print the .js class may not even have
+	   been applied, but a half-faded paragraph on paper is a fault, so the
+	   hidden state is cancelled rather than trusted. */
+	.js [data-reveal],
+	.js [data-reveal].is-visible {
+		opacity: 1 !important;
+		transform: none !important;
+		transition: none !important;
+	}
+
+	/* ------------------------------------------------------------- the type --- */
+	h1,
+	h2,
+	h3,
+	h4 {
+		/* An orphan heading is a line of type at the foot of a page with its
+		   section overleaf: the reader loses their place and the page looks
+		   broken. The one typographic rule a print stylesheet cannot do without. */
+		break-after: avoid;
+		page-break-after: avoid;
+	}
+
+	h1 {
+		font-size: 22pt;
+		line-height: 1.1;
+	}
+
+	h2 {
+		font-size: 15pt;
+	}
+
+	h3 {
+		font-size: 13pt;
+	}
+
+	/* No display type is uppercase on paper, including the two places §5.2
+	   spends uppercase on screen. A sheet of A4 set in caps is a shout, and a
+	   shout in a room with nobody else in it is just noise. */
+	.page-title,
+	.manifesto {
+		text-transform: none;
+		font-size: 22pt;
+		letter-spacing: 0;
+	}
+
+	.page-title {
+		max-width: none;
+	}
+
+	p,
+	li,
+	blockquote,
+	figcaption,
+	dd {
+		/* Widows and orphans: never one line of a paragraph alone on a sheet. */
+		orphans: 3;
+		widows: 3;
+	}
+
+	/* ------------------------------------------------------ the article head ---
+	   An essay on paper wants a byline, not a navigation bar. The title, the
+	   standfirst and the meta row are the part worth printing. */
+	.writing__meta {
+		font-size: 9pt;
+		letter-spacing: 0.08em;
+	}
+
+	/* ------------------------------------------------------------ the links ---
+	   A printed link is a dead end unless it shows its target, so every
+	   off-site link prints its href in the muted voice. Internal links are left
+	   alone: they are almost always to another piece in the same archive, and a
+	   page of raw paths would bury the prose. */
+	a[href^='http']:not([href*='pamelaroy.com'])::after {
+		content: ' (' attr(href) ')';
+		font-family: var(--font-ui);
+		font-size: 8.5pt;
+		color: var(--ink-muted);
+		word-break: break-all;
+	}
+
+	/* The underline is set with a colour-mix that a printer will render as
+	   almost nothing, which is how a page of prose comes out with invisible
+	   links. Forced back to a plain rule. */
+	a {
+		text-decoration: underline;
+		text-decoration-color: currentColor;
+		color: inherit;
+	}
+
+	/* ------------------------------------------------------- the address ---
+	   The one thing worth adding. A sheet of paper that has left the building
+	   needs to say where it came from, and CSS cannot invent a URL — see note 3
+	   at the top of this file. Written by BaseLayout, invisible on screen. */
+	.print-url {
+		display: block !important;
+		/* The same centred measure as the text above it, so the address does
+		   not run the full width of the page under a column of type. */
+		max-width: 34rem;
+		margin-inline: auto;
+		margin-block-start: 1.5em;
+		padding-block-start: 0.75em;
+		border-block-start: 1px solid var(--rule);
+		font-family: var(--font-ui);
+		font-size: 8.5pt;
+		color: var(--ink-muted);
+		word-break: break-all;
+	}
+
+	/* Never break these away from what they belong to. */
+	blockquote,
+	figure,
+	pre,
+	table {
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	blockquote {
+		border-left: 2px solid var(--ember);
+	}
+
+	img {
+		max-width: 100% !important;
+		break-inside: avoid;
+	}
+}

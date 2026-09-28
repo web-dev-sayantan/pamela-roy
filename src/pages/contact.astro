@@ -1,0 +1,275 @@
+---
+/**
+ * /contact — the form, the address, and the links out.
+ *
+ * Progressive enhancement in the same shape as the newsletter: the form works
+ * with JavaScript switched off, and the script only adds a composed mailto and
+ * inline validation. It never claims a message was sent, because a form that
+ * says so and did not is the one thing this page must not do.
+ *
+ * The `lede` and `after` slots are StaticPage's; the form is this route's own
+ * business, so it lives here rather than in a component nothing else uses.
+ */
+import StaticPage from '../layouts/StaticPage.astro';
+import Elsewhere from '../components/Elsewhere.astro';
+import Button from '../components/Button.astro';
+
+import { pageById } from '../lib/pages';
+import { SITE } from '../lib/site';
+
+const page = await pageById('contact');
+
+/**
+ * Where the form posts.
+ *
+ * There is no form backend configured, so this is a `mailto:` that carries the
+ * message to the same inbox as the address printed above it. That is a
+ * deliberate fallback rather than a placeholder pointing nowhere: a form aimed
+ * at an endpoint that does not exist loses someone's message without saying
+ * so, and losing a message is the one failure this page cannot have.
+ *
+ * `method="get"` is what makes the no-JS path work — the browser navigates to
+ * the mailto with the fields as query parameters, which mail clients put in the
+ * body. Swap the constant for a real provider (Formspree, Basin, a Netlify
+ * form) and change the method to `post`; nothing else here needs to move.
+ */
+const CONTACT_FORM_URL = `mailto:${SITE.email}?subject=${encodeURIComponent('A note from the site')}`;
+---
+
+<StaticPage page={page}>
+	<Fragment slot="lede">
+		<div class="contact">
+			<div class="contact__group">
+				<p class="label">Or write directly</p>
+				<p class="contact__address">
+					<a href={`mailto:${SITE.email}`}>{SITE.email}</a>
+				</p>
+			</div>
+
+			<hr class="rule contact__rule" />
+
+			<div class="contact__group">
+				<p class="label" id="contact-form-label">Or use this form</p>
+
+				<form
+					class="contact__form"
+					id="contact-form"
+					method="get"
+					action={CONTACT_FORM_URL}
+					novalidate
+					/* The address is read from here rather than written into the
+					   script, so SITE.email stays the only place it appears. */
+					data-address={SITE.email}
+					aria-labelledby="contact-form-label"
+					aria-describedby="contact-error"
+				>
+					<div class="contact__field">
+						<label class="contact__field-label" for="contact-name">Your name</label>
+						<input
+							class="field"
+							id="contact-name"
+							type="text"
+							name="name"
+							autocomplete="name"
+						/>
+					</div>
+
+					<div class="contact__field">
+						<label class="contact__field-label" for="contact-email">Your email</label>
+						<input
+							class="field"
+							id="contact-email"
+							type="email"
+							name="email"
+							autocomplete="email"
+							required
+						/>
+					</div>
+
+					<div class="contact__field">
+						<label class="contact__field-label" for="contact-message">
+							What you want to say
+						</label>
+						<textarea
+							class="field contact__message"
+							id="contact-message"
+							name="message"
+							rows="6"
+							required></textarea>
+					</div>
+
+					<Button type="submit">Send it</Button>
+				</form>
+
+				<p class="contact__error" id="contact-error" role="status" hidden></p>
+			</div>
+		</div>
+	</Fragment>
+
+	<Fragment slot="after">
+		<hr class="rule" />
+
+		<Elsewhere />
+	</Fragment>
+</StaticPage>
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+
+	// Enhancement only. Without it the form still reaches the inbox, as a
+	// mailto with the fields in the body. With it, the message is composed
+	// properly — a subject, and a body with the name and address on their own
+	// lines — and the browser's own validation is replaced by something that
+	// says why.
+	const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+	// The form is re-created by a navigation and this script is not re-run for
+	// it, so the elements are looked up again each time the page is wired.
+	perPage(() => {
+		const form = document.getElementById('contact-form') as HTMLFormElement | null;
+		const error = document.getElementById('contact-error');
+
+		form?.addEventListener('submit', (event) => {
+			const address = form.dataset.address ?? '';
+			const data = new FormData(form);
+			const name = String(data.get('name') ?? '').trim();
+			const email = String(data.get('email') ?? '').trim();
+			const message = String(data.get('message') ?? '').trim();
+
+			const complain = (text: string, focus: string) => {
+				event.preventDefault();
+				if (error) {
+					error.textContent = text;
+					error.removeAttribute('hidden');
+				}
+				document.getElementById(focus)?.focus();
+			};
+
+			// The address is the one thing that cannot be faked, and a message with
+			// no address in it cannot be replied to. Everything else is the
+			// visitor's business.
+			if (!EMAIL.test(email)) {
+				complain('I need an email address to reply to. Mind adding one?', 'contact-email');
+				return;
+			}
+
+			if (!message) {
+				complain('The message is empty. Say something and I will read it.', 'contact-message');
+				return;
+			}
+
+			error?.setAttribute('hidden', '');
+
+			const subject = name ? `A note from ${name}` : 'A note from the site';
+			const body = [name && `— ${name}`, email, '', message].filter(Boolean).join('\n');
+
+			window.location.href = `mailto:${address}?subject=${encodeURIComponent(
+				subject,
+			)}&body=${encodeURIComponent(body)}`;
+		});
+	});
+</script>
+
+<style>
+	.contact {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		/* The form is the widest thing on the page but not the whole shell: a
+		   message box stretched across 1400px is a box nobody can read across. */
+		width: 100%;
+		max-width: 34rem;
+		margin-block-end: var(--sp-6);
+	}
+
+	.contact__group {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-2);
+		width: 100%;
+	}
+
+	/* The address is the reliable route, so it is set larger than a field
+	   label and given the reading serif — it is the one thing on the page a
+	   reader may want to copy by hand. */
+	.contact__address {
+		font-family: var(--font-prose);
+		font-size: var(--fs-title);
+		color: var(--ink);
+	}
+
+	.contact__address a {
+		text-decoration-color: var(--rule);
+		transition: text-decoration-color var(--t-micro) var(--ease-out);
+	}
+
+	.contact__address a:hover {
+		text-decoration-color: var(--ember);
+	}
+
+	.contact__rule {
+		margin-block: var(--sp-3);
+	}
+
+	.contact__form {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-4);
+		width: 100%;
+	}
+
+	.contact__field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		width: 100%;
+	}
+
+	/* Sentence case, not the tracked micro-label: this is a form a stranger is
+	   being asked to fill in, and a shouted label is the wrong tone here even
+	   though it is the right one everywhere else. */
+	.contact__field-label {
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		font-weight: 500;
+		letter-spacing: var(--track-tight);
+		color: var(--ink-soft);
+	}
+
+	.contact__message {
+		resize: vertical;
+	}
+
+	.contact__error {
+		margin-block-start: var(--sp-3);
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		color: var(--ember);
+	}
+</style>

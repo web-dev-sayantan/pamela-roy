@@ -1,0 +1,108 @@
+---
+/**
+ * Plate — a typographic stand-in for a picture.
+ *
+ * A cover with no photograph has to read as a deliberate book cover rather
+ * than a missing image, so this is composed like the minimal covers it is
+ * imitating: a number and a year in opposite top corners, one word centred on
+ * the canvas under a short ember rule.
+ *
+ * Centring is what makes it work. Anchored to the foot, the top two thirds
+ * read as a panel that failed to load.
+ *
+ * It is used in two places — a shelf card with no cover, and the portrait slot
+ * on /about — so it fills whatever box it is given rather than fixing its own
+ * aspect ratio. The caller owns the shape.
+ *
+ * The rule and the ember hover state are the plate's only use of the accent,
+ * and small enough not to matter against the five-percent budget in §4.
+ */
+interface Props {
+	/** The one word or name set across the middle of the plate. */
+	label: string;
+	/** Top-left corner, e.g. a catalogue number. Left off where a number
+	    would mean nothing. */
+	corner?: string;
+	/** Top-right corner, typically a year. */
+	year?: number;
+	/**
+	 * The label's size relative to the box it is set in.
+	 *
+	 * The default suits a shelf card, which is roughly 500px wide in a
+	 * two-column shelf. The portrait plate is a quarter of that, and at the
+	 * card's scale a two-word name wraps across three lines and reads as a
+	 * mistake. Sizing is the caller's because the box is the caller's.
+	 */
+	size?: 'm' | 's';
+}
+
+const { label, corner, year, size = 'm' } = Astro.props;
+---
+
+<div class:list={['plate', size === 's' && 'plate--small']} aria-hidden="true">
+	{corner && <span class="plate__corner plate__corner--left">{corner}</span>}
+	{year && <span class="plate__corner plate__corner--right">{year}</span>}
+	<span class="plate__label">{label}</span>
+</div>
+
+<style>
+	.plate {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--sp-5);
+		border: 1px solid var(--rule);
+	}
+
+	.plate__corner {
+		position: absolute;
+		top: var(--sp-4);
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		color: var(--ink-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.plate__corner--left {
+		left: var(--sp-4);
+	}
+
+	.plate__corner--right {
+		right: var(--sp-4);
+	}
+
+	.plate__label {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 60;
+		font-weight: 500;
+		font-size: var(--fs-display-m);
+		line-height: var(--lh-heading);
+		text-align: center;
+		/* A two-word name in a narrow plate wraps, and an unbalanced wrap
+		   leaves a word alone on the second line. */
+		text-wrap: balance;
+		color: var(--ink-soft);
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	/* A 3rem ember rule above the label: the plate's only use of the accent. */
+	.plate__label::before {
+		content: '';
+		display: block;
+		width: 3rem;
+		margin: 0 auto var(--sp-3);
+		border-top: 1px solid var(--ember);
+	}
+
+	/* Card-title scale, for a plate roughly half the width of a shelf card. */
+	.plate--small .plate__label {
+		font-variation-settings: 'opsz' 30;
+		font-weight: 600;
+		font-size: var(--fs-display-s);
+		line-height: 1.2;
+	}
+</style>

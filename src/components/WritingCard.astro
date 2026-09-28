@@ -1,0 +1,231 @@
+---
+/**
+ * WritingCard — one shelf card.
+ *
+ * The whole card is a single <a>: one tab stop, one link, one announcement.
+ * The "read more →" is decoration inside it rather than a nested link, which
+ * is the a11y-correct arrangement and also the one the reference uses.
+ *
+ * Covers are optional. With no image the card gets a typographic plate — the
+ * topic set in Fraunces on a recessed ground — so a piece without art still
+ * looks deliberate rather than broken. That is the workflow in §12 of the
+ * design spec: ship the essay, add the picture later.
+ */
+import { Picture } from 'astro:assets';
+import type { Writing } from '../lib/writings';
+import { minutesFor, shortDate, writingHref } from '../lib/writings';
+import { topicLabel } from '../lib/topics';
+import Plate from './Plate.astro';
+
+interface Props {
+	entry: Writing;
+	/** Catalogue number for the cover plate, e.g. "07". Pass for a tidy shelf. */
+	number?: number;
+	/** Read more word, varied so a shelf of cards does not read as a form. */
+	more?: string;
+	/**
+	 * Adds the `data-topic` / `data-year` hooks TopicFilter narrows on. Only
+	 * worth the two attributes on a shelf that actually has a filter above it.
+	 */
+	filterable?: boolean;
+	/**
+	 * Marks the one cover that is above the fold, so it is not lazy-loaded.
+	 *
+	 * Lazy-loading the image the page cannot paint without is worse than loading
+	 * it slowly: it defers the one request that decides the largest contentful
+	 * paint, and a deferred LCP candidate reliably produces a worse LCP than an
+	 * eager one. §11 P9.1 says "lazy-load below-fold images", and the qualifier is
+	 * doing real work — it is there to say *not* to do this to the first one.
+	 *
+	 * So the caller says which card is first. A component cannot know: on the home
+	 * page the first card is above the fold, on /library the first card is too, but
+	 * neither is true of a card in the middle of a long archive, and a heuristic
+	 * inside the card would be wrong somewhere.
+	 */
+	priority?: boolean;
+}
+
+const { entry, number, more = 'Read more', filterable = false, priority = false } = Astro.props;
+const { title, description, publishDate, topic } = entry.data;
+
+const coverAlt = entry.data.coverAlt ?? '';
+const href = writingHref(entry);
+const minutes = minutesFor(entry);
+---
+
+<article
+	class="card"
+	data-topic={filterable ? topic : undefined}
+	data-year={filterable ? String(publishDate.getUTCFullYear()) : undefined}
+>
+	<a class="card__link" href={href}>
+		<div class="card__cover">
+			{
+				entry.data.cover ? (
+					/*
+					 * `<Picture>` rather than `<Image>`, and this is §11 P9.1 met
+					 * rather than a preference: "astro:assets for all images
+					 * (AVIF/WebP)". `<Image>` emits exactly one format, so a site
+					 * using it ships a single codec to every reader. `<Picture>`
+					 * emits AVIF for the browsers that take it and WebP for the
+					 * rest, with the original as the last fallback, and the
+					 * browser downloads one file rather than all three.
+					 *
+					 * Caught by check-images.ts on its first run against a real
+					 * cover: `<Image>` had produced ten WebP files and zero AVIF.
+					 */
+					<Picture
+						src={entry.data.cover}
+						alt={coverAlt}
+						formats={['avif', 'webp']}
+						loading={priority ? 'eager' : 'lazy'}
+						fetchpriority={priority ? 'high' : undefined}
+						decoding="async"
+						widths={[320, 540, 760]}
+						sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+					/>
+				) : (
+					<Plate
+						label={topicLabel(topic)}
+						corner={number ? String(number).padStart(2, '0') : undefined}
+						year={publishDate.getUTCFullYear()}
+					/>
+				)
+			}
+		</div>
+
+		<div class="card__body">
+			<p class="label card__meta">
+				<time datetime={publishDate.toISOString()}>{shortDate(publishDate)}</time>
+				<span aria-hidden="true"> · </span>
+				{minutes} min
+			</p>
+
+			<h3 class="card__title">{title}</h3>
+
+			<p class="card__excerpt">{description}</p>
+
+			<span class="card__more">{more}</span>
+		</div>
+	</a>
+</article>
+
+<style>
+	/* One tab stop. The lift on hover belongs to the cover, the title warms to
+	   ember, and the arrow travels a few pixels. Nothing else moves. */
+	.card__link {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-4);
+		color: var(--ink);
+		text-decoration: none;
+	}
+
+	/* The 4:5 plate, uniform whether it holds a photograph or a typographic
+	   stand-in, so the shelf never breaks rhythm. */
+	/* The 4:5 plate, uniform whether it holds a photograph or a typographic
+	   stand-in, so the shelf never breaks rhythm. With no cover, the ground
+	   itself warms on hover — the same gesture in the only channel a
+	   placeholder has. */
+	.card__cover {
+		position: relative;
+		aspect-ratio: 4 / 5;
+		overflow: hidden;
+		border-radius: 2px;
+		background: var(--paper-deep);
+		transition: background-color var(--t-base) var(--ease-out);
+	}
+
+	.card__cover :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		/* The site's one photography filter — see --filter-cover in
+		   tokens.css. Hover deliberately lifts it instead: the resting shelf
+		   is unified, and the one cover you are touching is allowed to be
+		   more alive than its neighbours. */
+		filter: var(--filter-cover);
+		transition:
+			transform var(--t-slow) var(--ease-soft),
+			filter var(--t-base) var(--ease-out);
+	}
+
+	.card__link:hover .card__cover :global(img) {
+		transform: scale(1.03);
+		filter: var(--filter-cover-hover);
+	}
+
+	/* With no cover, the ground itself warms very slightly on hover — the same
+	   gesture, expressed in the only channel a placeholder has. The plate's
+	   own label warms too, from the other side of the rule. */
+	.card__link:hover .card__cover {
+		background: color-mix(in srgb, var(--paper-deep) 80%, var(--ember-wash));
+	}
+
+	.card__link:hover :global(.plate__label) {
+		color: var(--ember);
+	}
+
+	.card__body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+	}
+
+	.card__meta {
+		display: flex;
+		gap: 0.4em;
+	}
+
+	.card__title {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 30;
+		font-weight: 600;
+		font-size: var(--fs-display-s);
+		line-height: 1.2;
+		text-wrap: balance;
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.card__link:hover .card__title {
+		color: var(--ember);
+	}
+
+	/* Three lines, then a hard stop. An excerpt that runs on stops being an
+	   excerpt and starts being a second copy of the article. */
+	.card__excerpt {
+		font-family: var(--font-prose);
+		font-size: var(--fs-body);
+		line-height: 1.6;
+		color: var(--ink-soft);
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		overflow: hidden;
+	}
+
+	.card__more {
+		margin-top: var(--sp-1);
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink);
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.card__more::after {
+		content: ' →';
+		display: inline-block;
+		transition: transform var(--t-base) var(--ease-out);
+	}
+
+	.card__link:hover .card__more {
+		color: var(--ember);
+	}
+
+	.card__link:hover .card__more::after {
+		transform: translateX(0.25em);
+	}
+</style>

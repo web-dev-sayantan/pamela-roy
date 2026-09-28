@@ -1,0 +1,445 @@
+---
+/**
+ * WritingLayout — the chrome for one piece: title, meta, the reading column,
+ * and the three things that keep a library readable rather than a dead end.
+ *
+ * Reading a piece should end with somewhere to go, so the layout closes with
+ * the neighbours, then the shelf of siblings, then a short run of the most
+ * recent pieces. Three ways onward, in descending order of relevance.
+ *
+ * The article title is set in sentence case at Fraunces opsz 90 rather than
+ * uppercase: §5.2 rations shouting to the hero manifesto and the page title,
+ * and an article title is neither.
+ */
+import { Picture } from 'astro:assets';
+
+import BaseLayout from './BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ProgressBar from '../components/ProgressBar.astro';
+import Prose from '../components/Prose.astro';
+import Toc from '../components/Toc.astro';
+import PullQuote from '../components/PullQuote.astro';
+import Catalogue from '../components/Catalogue.astro';
+import WritingGrid from '../components/WritingGrid.astro';
+import JsonLd from '../components/JsonLd.astro';
+
+import type { Writing } from '../lib/writings';
+import { minutesFor, shortDate, writingHref } from '../lib/writings';
+import { countWords } from '../lib/readingTime';
+import { topicLabel } from '../lib/topics';
+import { articleLd, breadcrumbLd, homeCrumb } from '../lib/seo';
+
+interface Heading {
+	depth: number;
+	slug: string;
+	text: string;
+}
+
+/**
+ * No head props here on purpose.
+ *
+ * Every field BaseHead needs for a piece of writing is already in the entry —
+ * the title, the description, the publish date, the topic — so letting a caller
+ * pass them would be a second, optional source for facts the layout can derive.
+ * The only thing the entry does not carry is the card, and that is a route
+ * pattern rather than a fact, so it is computed below.
+ */
+interface Props {
+	entry: Writing;
+	/** The rendered body, from `render()`. */
+	Content: any;
+	/** Every heading in the body, from `render()`. */
+	headings: Heading[];
+	/** Pieces either side of this one in the archive. */
+	previous?: Writing;
+	next?: Writing;
+	/** Siblings sharing a topic. */
+	similar?: Writing[];
+	/** The most recent pieces, for the tail of the index. */
+	recent?: Writing[];
+}
+
+const { entry, Content, headings, previous, next, similar = [], recent = [] } = Astro.props;
+const { title, description, publishDate, topic, tags } = entry.data;
+const minutes = minutesFor(entry);
+
+/* The card for this piece, and the machine-readable description of it. Both are
+   built from the same entry, so neither can say something the article does not. */
+const card = `/og/${entry.id}.png`;
+
+/* Where this piece sits: the library, then the topic it is filed under, then
+   the piece. The trail is real navigation — every crumb is a page, and the
+   reader can walk back up it — so it is not decoration. */
+const trail = [
+	homeCrumb,
+	{ name: 'Library', path: '/library' },
+	{ name: topicLabel(topic), path: `/topics/${topic}` },
+	{ name: title, path: writingHref(entry) },
+];
+
+/**
+ * A contents list is an invitation only if there is somewhere to go. Below
+ * roughly 1,500 words a reader can hold the whole piece in their head, and a
+ * contents list for a short essay is scaffolding around nothing.
+ */
+const TOC_MIN_WORDS = 1500;
+const showToc = countWords(entry.body ?? '') >= TOC_MIN_WORDS;
+---
+
+<BaseLayout
+	title={title}
+	description={description}
+	type="article"
+	image={card}
+	imageAlt={`The title of the piece, set on paper: ${title}`}
+	publishedTime={publishDate}
+	modifiedTime={entry.data.updatedDate}
+	section={topicLabel(topic)}
+>
+	<JsonLd data={articleLd(entry, Astro.site)} />
+	<JsonLd data={breadcrumbLd(trail, Astro.site)} />
+	<ProgressBar />
+	<SiteHeader />
+
+	<main id="main">
+		<article class="writing">
+			<header class="writing__head shell">
+				{/* The same bloom the page title gets. It stops at the top of the
+				    reading column: an article is read flat and calm. */}
+				<div class="hearth" aria-hidden="true"></div>
+
+				<h1 class="writing__title">{title}</h1>
+
+				<p class="writing__standfirst">{description}</p>
+
+				{/* One meta row — the piece's provenance: when, how long, which
+				    shelf, and when it was last changed if it has been. Reading
+				    time is a promise about the reader's evening, so it sits
+				    beside the date. The topic stays a link, so the row is also
+				    the way into the rest of that shelf. */}
+				<p class="label writing__meta">
+					<time datetime={publishDate.toISOString()}>{shortDate(publishDate)}</time>
+					<span aria-hidden="true"> · </span>
+					{minutes} min
+					<span aria-hidden="true"> · </span>
+					<a href={`/topics/${topic}`}>{topicLabel(topic)}</a>
+					{
+						entry.data.updatedDate && (
+							<>
+								<span aria-hidden="true"> · </span>
+								updated{' '}
+								<time datetime={entry.data.updatedDate.toISOString()}>
+									{shortDate(entry.data.updatedDate)}
+								</time>
+							</>
+						)
+					}
+				</p>
+
+				{tags.length > 0 && (
+					<ul class="writing__tags" aria-label="Tags">
+						{tags.map((tag) => (
+							<li class="writing__tag">{tag}</li>
+						))}
+					</ul>
+				)}
+			</header>
+
+			{
+				entry.data.cover && (
+					<div class="writing__cover shell">
+						<Picture
+							src={entry.data.cover}
+							alt={entry.data.coverAlt ?? ''}
+							formats={['avif', 'webp']}
+							loading="eager"
+							fetchpriority="high"
+							decoding="async"
+							widths={[640, 960, 1200]}
+							sizes="(max-width: 1024px) 90vw, 68rem"
+						/>
+					</div>
+				)
+			}
+
+			{/* The body is centred in the shell, with the contents floated into
+			    the right margin once there is room for it. Either way the
+			    measure is the same. */}
+			<div class="writing__body shell">
+				<div class="writing__content">
+					{/* Set from frontmatter, above the body, so it reads as the
+					    essay's thesis rather than as one more thing inside it. */}
+					{entry.data.pullQuote && (
+						<PullQuote cite={entry.data.pullQuoteCite}>{entry.data.pullQuote}</PullQuote>
+					)}
+
+					<Prose>
+						<Content />
+					</Prose>
+				</div>
+
+				{showToc && (
+					<aside class="writing__aside">
+						<Toc headings={headings} />
+					</aside>
+				)}
+			</div>
+		</article>
+
+		{/* Not inside the <article>: once the essay is finished, what follows is
+		    the library inviting the reader onward, which is the page's job and
+		    not the piece's. */}
+		<footer class="writing__tail shell">
+			{/* The neighbours. Large Fraunces links, because after the last
+			    line of an essay the reader is deciding whether to start
+			    another, and the size is the invitation. The pair runs through
+			    the archive in the order the shelf listed it — previous is the
+			    newer piece. */}
+			<nav class="neighbours" aria-label="More writing">
+				{previous ? (
+					<a class="neighbours__link neighbours__link--previous" href={writingHref(previous)}>
+						<span class="label neighbours__dir">← Previous</span>
+						<span class="neighbours__title">{previous.data.title}</span>
+					</a>
+				) : (
+					<span></span>
+				)}
+
+				{next ? (
+					<a class="neighbours__link neighbours__link--next" href={writingHref(next)}>
+						<span class="label neighbours__dir">Next →</span>
+						<span class="neighbours__title">{next.data.title}</span>
+					</a>
+				) : (
+					<span></span>
+				)}
+			</nav>
+
+			{
+				similar.length > 0 && (
+					<section class="section">
+						<div class="section__head">
+							<p class="label">More on {topicLabel(topic).toLowerCase()}</p>
+							<h2 class="section__heading">If this was the right shelf</h2>
+						</div>
+						<WritingGrid items={similar} numbered={false} more="Read on" />
+					</section>
+				)
+			}
+
+			<section class="section">
+				<div class="section__head">
+					<p class="label">The card catalogue</p>
+					<h2 class="section__heading">Lately in the catalogue</h2>
+				</div>
+				<Catalogue entries={recent} />
+				<p class="section__link">
+					<a href="/library">The whole library</a>
+				</p>
+			</section>
+		</footer>
+	</main>
+
+	<SiteFooter />
+</BaseLayout>
+
+<style>
+	/* The article element itself carries no bottom padding: the tail that
+	   follows the essay owns the space above it. Paying for both opened a void
+	   the width of a screen between the last line and the neighbours. */
+
+	/* The hearth needs a positioned ancestor; the title block is it. The bloom
+	   itself is the shared .hearth utility, not a second copy of the gradient. */
+	.writing__head {
+		position: relative;
+		padding-block: var(--sp-section) var(--sp-7);
+	}
+
+	/* Lifts the title block above the bloom. The hearth is excluded, because
+	   it is the one child that must stay absolutely positioned. */
+	.writing__head > *:not(.hearth) {
+		position: relative;
+		z-index: 1;
+	}
+
+	.writing__title {
+		max-width: 20ch;
+		margin-block: 0 var(--sp-5);
+		font-variation-settings: 'opsz' 90;
+		font-weight: 500;
+		font-size: var(--fs-display-l);
+		line-height: 0.95;
+	}
+
+	.writing__standfirst {
+		max-width: var(--measure);
+		font-family: var(--font-prose);
+		font-size: var(--fs-prose);
+		line-height: var(--lh-prose);
+		color: var(--ink-soft);
+	}
+
+	/* The meta row reads as a single line of provenance, so it is one flex row
+	   rather than a set of blocks that can break at odd widths. */
+	.writing__meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4em;
+		margin-block-start: var(--sp-5);
+	}
+
+	/* The topic is the one navigable item in an otherwise factual row, so it
+	   reads as a link and lifts to the ember like every other link on the
+	   site. The rest of the row is not interactive and must not look as if it
+	   were, hence no underline on the times. */
+	.writing__meta a {
+		text-decoration: none;
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.writing__meta a:hover {
+		color: var(--ember);
+	}
+
+	/* Tags sit in the pine of the token palette: the second voice, and never
+	   the ember. */
+	.writing__tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-2);
+		margin: var(--sp-4) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.writing__tag {
+		padding: 0.35em 0.7em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--pine);
+		background: var(--pine-wash);
+		border-radius: 2px;
+	}
+
+	.writing__cover {
+		margin-block-end: var(--sp-7);
+	}
+
+	.writing__cover :global(img) {
+		width: 100%;
+		height: auto;
+		border-radius: 2px;
+		/* The site's one photography filter — see --filter-cover in
+		   tokens.css. A photograph inside the body and one on the shelf are
+		   the same shelf, and they have to be filtered the same way. */
+		filter: var(--filter-cover);
+	}
+
+	.writing__body {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: var(--sp-7);
+	}
+
+	/* The measure itself is `.prose`'s job now — see the note at the top of
+	   prose.css for why it lives there and not here. This file is only
+	   responsible for where that measure sits: flush left, so the body starts
+	   on the same line as the standfirst above it at every width. */
+	.writing__content {
+		grid-column: 1;
+	}
+
+	/* Once there is room for a margin, the measure holds the left and the
+	   contents take the space beside it. */
+	@media (min-width: 1080px) {
+		.writing__body {
+			grid-template-columns: minmax(0, var(--measure)) minmax(0, 1fr);
+			column-gap: clamp(2rem, 5vw, 5rem);
+		}
+
+		.writing__aside {
+			grid-column: 2;
+			position: sticky;
+			/* Clears the sticky header and the progress hairline beneath it. */
+			top: calc(var(--frame-w) + var(--header-h) + var(--sp-5));
+			align-self: start;
+		}
+	}
+
+	/* Below the three-column stop the contents is not worth a block of its own
+	   above the essay, so it is simply not rendered. */
+	@media (max-width: 1079px) {
+		.writing__aside {
+			display: none;
+		}
+	}
+
+	/* ------------------------------------------------------- the tail ---- */
+
+	.writing__tail {
+		margin-block-start: var(--sp-8);
+	}
+
+	.neighbours {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: clamp(2rem, 4vw, 3.5rem);
+		padding-block: var(--sp-6);
+		border-block: 1px solid var(--rule);
+	}
+
+	.neighbours__link {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		color: var(--ink);
+		text-decoration: none;
+	}
+
+	/* The next piece is the one you want, so it is set flush right and the
+	   previous one flush left — the reader's eye already knows the way. */
+	.neighbours__link--next {
+		text-align: end;
+		align-items: flex-end;
+	}
+
+	.neighbours__dir {
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.neighbours__title {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 30;
+		font-weight: 500;
+		font-size: var(--fs-display-s);
+		line-height: 1.15;
+		text-wrap: balance;
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.neighbours__link:hover .neighbours__title,
+	.neighbours__link:hover .neighbours__dir {
+		color: var(--ember);
+	}
+
+	/* On a phone the pair stacks, and both align to the same edge. */
+	@media (max-width: 560px) {
+		.neighbours {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.neighbours__link--next {
+			text-align: start;
+			align-items: flex-start;
+		}
+	}
+
+	/* The catalogue tail's own section rhythm: the neighbours already carry a
+	   rule, so the sections below start a little further in. */
+	.writing__tail .section:first-of-type {
+		padding-block-start: var(--sp-8);
+	}
+</style>

@@ -1,0 +1,58 @@
+---
+/**
+ * Empty — the site's one way of saying there is nothing here.
+ *
+ * Phase 7's rule: an empty state gets a real sentence, written in voice, and
+ * never the words "No results found". That sentence is the last line of
+ * defence, because a page that says "No results found" in a component's
+ * default voice tells the reader the page was assembled rather than written.
+ *
+ * This component owns the *shape* of that moment — a micro-label in the muted
+ * voice, then a sentence in the secondary ink, held to the reading measure —
+ * and takes the words from its caller. The words cannot be shared: a topic
+ * with nothing on it, a filter that has excluded everything, an offer list
+ * that is empty and a letter that has not been sent are four different
+ * situations and each deserves its own sentence. What must not vary is how
+ * they are set.
+ *
+ * Before this existed the treatment was hand-written in four places, which is
+ * how the newsletter panel and the filter bar came to promise the same two
+ * things twice. One shape, one voice, four honest sentences.
+ *
+ * Any extra attributes are spread onto the root, which is how TopicFilter
+ * hands it the `data-filter-empty` hook its script toggles.
+ */
+interface Props {
+	/** The small tracked line above the sentence. Omit for none. */
+	label?: string;
+	class?: string;
+	[id: string]: unknown;
+}
+
+const { label, class: className, ...rest } = Astro.props;
+---
+
+<div class:list={['empty', className]} {...rest}>
+	{label && <p class="label empty__label">{label}</p>}
+	<div class="empty__body">
+		<slot />
+	</div>
+</div>
+
+<style>
+	/* Deliberately not a panel, a box, or a dashed border. An empty shelf on
+	   this site is an absence, and anything drawn round it would be furniture
+	   pretending to be content. It reads as the gap it is, with a line of type
+	   standing in it. */
+	.empty {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-2);
+		max-width: var(--measure);
+	}
+
+	.empty__body {
+		color: var(--ink-soft);
+	}
+</style>

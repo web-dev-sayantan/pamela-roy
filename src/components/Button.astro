@@ -1,0 +1,76 @@
+---
+/**
+ * Button — Move 5, the Lamplight Button.
+ *
+ * The ember button is always a transparent outline that fills on interaction.
+ * A solid ember button as the resting state would put the accent across the
+ * viewport and break the discipline in §4; the lamplight only turns on when
+ * someone reaches for it.
+ *
+ * Renders an <a> when given an href, and a <button> otherwise, so a form
+ * submit never gets wrapped in a link that goes nowhere.
+ */
+interface Props {
+	href?: string;
+	type?: 'button' | 'submit' | 'reset';
+	/** Neutral variant for secondary actions. */
+	quiet?: boolean;
+	class?: string;
+	[key: string]: unknown;
+}
+
+const { href, type = 'button', quiet = false, class: className, ...rest } = Astro.props;
+
+const Element = href ? 'a' : 'button';
+---
+
+<Element
+	class:list={['btn', quiet && 'btn--quiet', className]}
+	{...(href ? { href } : { type })}
+	{...rest}
+>
+	<slot />
+</Element>
+
+<style>
+	.btn {
+		display: inline-block;
+		padding: 0.95em 2em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		line-height: 1;
+		text-transform: uppercase;
+		color: var(--ember);
+		background: transparent;
+		border: 1px solid var(--ember);
+		border-radius: 2px;
+		text-decoration: none;
+		transition:
+			color var(--t-micro) var(--ease-out),
+			background-color var(--t-micro) var(--ease-out),
+			border-color var(--t-micro) var(--ease-out);
+	}
+
+	.btn:hover,
+	.btn:focus-visible {
+		color: var(--paper);
+		background: var(--ember);
+		border-color: var(--ember);
+	}
+
+	/* The quiet variant borrows the same gesture in neutral ink, for the
+	   secondary action beside the primary one. */
+	.btn--quiet {
+		color: var(--ink);
+		border-color: var(--rule);
+	}
+
+	.btn--quiet:hover,
+	.btn--quiet:focus-visible {
+		color: var(--paper);
+		background: var(--ink);
+		border-color: var(--ink);
+	}
+</style>

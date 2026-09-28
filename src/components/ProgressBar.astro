@@ -1,0 +1,126 @@
+---
+/**
+ * ProgressBar — the Reading Progress Hairline.
+ *
+ * A 2px ember rule under the header that fills as the essay is read. It does
+ * not tell a reader anything they could not work out; it makes a long piece
+ * feel finite, which is the whole job.
+ *
+ * Pinned to the header's bottom edge with fixed positioning rather than
+ * appended inside the header, because it is the article's affordance and the
+ * header is shared chrome. The insets keep it clear of the room frame.
+ *
+ * It is aria-hidden on purpose. A progressbar role that never reports a value
+ * to assistive tech is a worse lie than no role at all, and the reading
+ * position is already inherent in the document.
+ */
+---
+
+<div class="progress" aria-hidden="true"></div>
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+	/**
+	 * The fill is a scaleX on a transform rather than a width, because width
+	 * is one of the two properties §9 rules out — it forces layout on every
+	 * frame. The value is written to a custom property and read by the
+	 * transform, so the compositor does the work.
+	 *
+	 * Scroll events are coalesced into one rAF per frame, and the property is
+	 * only written when the rounded value actually changes: a long essay
+	 * produces hundreds of events and at most one hundred writes.
+	 *
+	 * The bar belongs to an article, so a navigation to or from one changes
+	 * which bar exists — `bar` is refreshed per page while the two window
+	 * listeners stay registered once and read whatever is live. A `null` bar is
+	 * the ordinary case on every page that is not an essay.
+	 */
+	let bar: HTMLElement | null = null;
+	let queued = false;
+	let last = -1;
+
+	const measure = () => {
+		queued = false;
+		if (!bar) return;
+
+		// The distance the reader can actually travel. A page shorter than
+		// the viewport has none, which would divide by zero.
+		const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+
+		if (scrollable <= 0) {
+			bar.style.setProperty('--progress', '0');
+			return;
+		}
+
+		const progress = Math.round((window.scrollY / scrollable) * 100) / 100;
+		if (progress === last) return;
+
+		last = progress;
+		bar.style.setProperty('--progress', String(progress));
+	};
+
+	const onScroll = () => {
+		if (queued) return;
+		queued = true;
+		requestAnimationFrame(measure);
+	};
+
+	addEventListener('scroll', onScroll, { passive: true });
+	addEventListener('resize', onScroll, { passive: true });
+
+	perPage(() => {
+		bar = document.querySelector<HTMLElement>('.progress');
+		// The article we arrived at is at the top, and the one we left was
+		// somewhere down its length: the cached value belongs to neither.
+		last = -1;
+		measure();
+	});
+</script>
+
+<style>
+	.progress {
+		position: fixed;
+		/* The header's own height: its frame-width of top padding, then the bar. */
+		top: calc(var(--frame-w) + var(--header-h));
+		left: var(--frame-w);
+		right: var(--frame-w);
+		/* Above the page content, below the header and the mobile menu. */
+		z-index: 99;
+		height: 2px;
+		pointer-events: none;
+		overflow: hidden;
+	}
+
+	.progress::after {
+		content: '';
+		display: block;
+		height: 100%;
+		background: var(--ember);
+		transform: scaleX(var(--progress, 0));
+		transform-origin: left center;
+	}
+</style>

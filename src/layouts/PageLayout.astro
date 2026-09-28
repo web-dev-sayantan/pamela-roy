@@ -1,0 +1,94 @@
+---
+/**
+ * PageLayout — the chrome for every non-article page: header, a page title
+ * block warmed by the hearth glow, the page's own content, and the footer.
+ * Article pages get WritingLayout instead (Phase 4); the home page composes
+ * BaseLayout + header/footer directly around its manifesto hero (Phase 3).
+ */
+import BaseLayout from './BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import JsonLd from '../components/JsonLd.astro';
+
+import { breadcrumbLd, homeCrumb } from '../lib/seo';
+
+interface Props {
+	/** Page title, rendered as the h1 and the document title. */
+	title: string;
+	/** Small tracked label above the title, e.g. "Services". */
+	eyebrow?: string;
+	/** One supporting sentence under the title. Doubles as the meta description. */
+	description?: string;
+	/**
+	 * The crumbs above this page, excluding Home — pass them for a nested route
+	 * and the trail is built and rendered here.
+	 *
+	 * It is a prop rather than something derived from the URL because the
+	 * *names* are editorial: `/services/ghostwriting` is "Ghostwriting" in the
+	 * trail and "Services" one level up, and neither is guessable from a path.
+	 * A flat page simply omits it and gets no trail, which is right — a
+	 * breadcrumb of "Home" on the home page is noise.
+	 */
+	trail?: { name: string; path: string }[];
+	/** Keeps the page out of search results. Used by the 404. */
+	noindex?: boolean;
+}
+
+const { title, eyebrow, description, trail, noindex } = Astro.props;
+
+const crumbs = trail?.length ? [homeCrumb, ...trail] : undefined;
+---
+
+<BaseLayout title={title} {description} {noindex}>
+	{crumbs && <JsonLd data={breadcrumbLd(crumbs, Astro.site)} />}
+	<SiteHeader />
+
+	<main id="main">
+		<header class="page-head">
+			<div class="hearth" aria-hidden="true"></div>
+
+			<div class="shell page-head__inner">
+				{eyebrow && <p class="label">{eyebrow}</p>}
+				<h1 class="page-title">{title}</h1>
+				{description && <p class="page-head__description">{description}</p>}
+			</div>
+		</header>
+
+		<slot />
+	</main>
+
+	<SiteFooter />
+</BaseLayout>
+
+<style>
+	/* The hearth needs a positioned ancestor; the title block is it. */
+	.page-head {
+		position: relative;
+		padding-block: var(--sp-section) var(--sp-6);
+	}
+
+	.page-head__inner {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-4);
+	}
+
+	/* Page titles are the second of the two places uppercase is allowed —
+	   the hero manifesto is the first. Sentence-long titles wrap in balance
+	   and never exceed a comfortable display measure. */
+	.page-title {
+		font-variation-settings: 'opsz' 90;
+		font-weight: 500;
+		font-size: var(--fs-display-l);
+		line-height: 0.95;
+		text-transform: uppercase;
+		max-width: 20ch;
+	}
+
+	.page-head__description {
+		max-width: var(--measure);
+		color: var(--ink-soft);
+	}
+</style>

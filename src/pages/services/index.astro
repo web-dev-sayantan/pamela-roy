@@ -1,0 +1,71 @@
+---
+/**
+ * The services index — the extensibility requirement, made visible.
+ *
+ * Nothing on this page names a service. The list is the collection, sorted by
+ * `order`, and each entry is rendered by the same ServiceCard the home teaser
+ * uses — so adding src/content/services/workshops.md produces a listed, styled,
+ * linked entry without a word being edited here. That is the whole of the
+ * phase, and it is worth being able to prove in one step.
+ *
+ * The page title is a sentence rather than the word "Services" for the reason
+ * the eyebrow already says it: the title is one of the two places uppercase is
+ * allowed (§5.2), and it should not spend that on a word the reader has just
+ * read.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import ServiceCard from '../../components/ServiceCard.astro';
+import Empty from '../../components/Empty.astro';
+
+import { allServices, enquiryHref } from '../../lib/services';
+
+const services = await allServices();
+---
+
+<PageLayout
+	eyebrow="Services"
+	title="Ways to work together"
+	description="Two kinds of work, and a short note on which one you probably want. The price is on each card, and the engagements are small enough to be worth asking about."
+>
+	{/* Flush: the list begins with a hairline, not a heading, so it takes the
+	    head's own bottom space rather than a second section's worth. */}
+	<section class="section section--flush">
+		<div class="shell">
+			{/* The offer titles are h3, which is right on the home page where
+			    they sit under a section heading and wrong here, where the page
+			    title is the only heading above them. This names the list for
+			    anyone reading the outline, without putting a second line of type
+			    on the page. */}
+			<h2 class="visually-hidden">What is on offer</h2>
+
+			{
+				services.length > 0 ? (
+					<ServiceCard items={services} stacked />
+				) : (
+					/* An empty offer list is a real state — the answer is "not at
+					   the moment", not a heading with nothing under it. */
+					<Empty label="At the moment">
+						Nothing is on offer, which usually means a waitlist. Do write
+						and say what you have in mind.
+					</Empty>
+				)
+			}
+
+			{/* §1 asks that a visitor can find out what Pamela does and how to
+			    reach her without leaving the site. The cards lead to a page that
+			    offers a button; this is the address for anyone who would rather
+			    skip the reading first. */}
+			<p class="section__link services__enquiry">
+				<a href={enquiryHref('your work')}>Or just write and ask</a>
+			</p>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	/* The list already opens with a hairline, so the enquiry line needs air
+	   above it rather than another rule. */
+	.services__enquiry {
+		margin-block-start: var(--sp-7);
+	}
+</style>

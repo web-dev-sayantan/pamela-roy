@@ -1,0 +1,142 @@
+/* =============================================================================
+   prose.css — long-form reading, hand-written.
+   Scoped to .prose (the Prose.astro wrapper applies the class in Phase 4).
+   The layout supplies the room; this file supplies the measure and the rhythm:
+   short punchy paragraphs, generous headings, links that lift rather than
+   shout, and a drop cap on the opening paragraph.
+   ========================================================================== */
+
+.prose {
+	font-family: var(--font-prose);
+	font-size: var(--fs-prose);
+	line-height: var(--lh-prose);
+	color: var(--ink);
+
+	/* The measure, defined here rather than in each layout.
+	   This was a real bug once: the line was capped only by a grid track
+	   inside a min-width query, so on a tablet nothing constrained it and an
+	   essay ran 952px — a hundred-odd characters a line. A layout that forgets
+	   to cap the measure is a layout with a 130-character line, and no reviewer
+	   reads the CSS of every page to notice. One rule, on the one class every
+	   block of prose wears, cannot be forgotten.
+
+	   Flush left, not centred: every other block of prose on the site is left
+	   in the shell and capped — the standfirst above it, the description under
+	   a page title, the intro on the home page. A centred column put the first
+	   paragraph a couple of hundred pixels to the right of the line above it,
+	   which reads as a mistake rather than a decision. Where a layout supplies
+	   a track of exactly this width, the cap is a no-op. */
+	max-width: var(--measure);
+}
+
+/* Short paragraphs with a steady gap. Spacing is the hierarchy — paragraphs
+   are never indented, including the first one after a heading. */
+.prose p {
+	margin-block: 0 1.35em;
+}
+
+.prose h2 {
+	font-size: var(--fs-display-m);
+	margin-block: 2.2em 0.6em;
+}
+
+.prose h3 {
+	font-size: var(--fs-display-s);
+	margin-block: 1.8em 0.4em;
+}
+
+/* Links inherit the global underline-lift from base.css unchanged. */
+
+/* A quote is Newsreader italic with an ember rule — the lamp's edge. */
+.prose blockquote {
+	margin-block: 0 1.35em;
+	padding-left: 1.5rem;
+	border-left: 2px solid var(--ember);
+	font-style: italic;
+	color: var(--ink);
+}
+
+.prose blockquote p:last-child {
+	margin-block-end: 0;
+}
+
+.prose ul,
+.prose ol {
+	margin-block: 0 1.35em;
+	padding-left: 1.25rem;
+}
+
+.prose li::marker {
+	color: var(--ink-muted);
+}
+
+.prose li + li {
+	margin-block-start: 0.3em;
+}
+
+/* Short rules, not full-width — cheaper, and more designed. */
+.prose hr {
+	width: 4rem;
+	height: 1px;
+	margin-block: 2.5rem;
+	background: var(--rule);
+}
+
+.prose img {
+	width: 100%;
+	height: auto;
+	margin-block: 2.5rem;
+	border-radius: 2px;
+}
+
+.prose figure {
+	margin-block: 2.5rem;
+}
+
+.prose figure img {
+	margin-block: 0;
+}
+
+.prose figcaption {
+	margin-block-start: 0.75rem;
+	font-family: var(--font-ui);
+	font-size: var(--fs-small);
+	line-height: var(--lh-ui);
+	color: var(--ink-muted);
+}
+
+.prose code {
+	font-family: var(--font-ui);
+	font-size: 0.85em;
+	padding: 0.15em 0.4em;
+	background: var(--paper-deep);
+	border-radius: 2px;
+}
+
+.prose pre {
+	margin-block: 0 1.35em;
+	padding: var(--sp-4);
+	overflow-x: auto;
+	background: var(--paper-deep);
+	border-radius: 2px;
+}
+
+.prose pre code {
+	padding: 0;
+	background: none;
+	font-size: var(--fs-small);
+	line-height: var(--lh-ui);
+}
+
+/* The opening paragraph gets a Fraunces drop cap — the signal that this is
+   a book worth settling into. :first-of-type, not :first-child, so a
+   leading figure never steals it. */
+.prose > p:first-of-type::first-letter {
+	float: left;
+	padding-right: 0.08em;
+	font-family: var(--font-display);
+	font-weight: 500;
+	font-size: 3.4em;
+	line-height: 0.82;
+	color: var(--ink);
+}

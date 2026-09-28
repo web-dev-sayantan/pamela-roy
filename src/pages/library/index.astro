@@ -1,0 +1,73 @@
+---
+/**
+ * The Library — the centrepiece of the site.
+ *
+ * Two indexes of the same list, deliberately. The shelf is for browsing: big
+ * covers, generous type, three lines of excerpt. The catalogue is for finding:
+ * every piece, month by month, in a form that scans in one pass. A visitor
+ * who knows roughly what they want skips the shelf entirely, and a visitor
+ * who does not can still wander it.
+ *
+ * The filter bar narrows both at once, and the whole unfiltered list is in the
+ * HTML either way — see TopicFilter.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import WritingGrid from '../../components/WritingGrid.astro';
+import TopicFilter from '../../components/TopicFilter.astro';
+import Catalogue from '../../components/Catalogue.astro';
+import Newsletter from '../../components/Newsletter.astro';
+
+import { allWritings, topicCounts, writingYears } from '../../lib/writings';
+
+const writings = await allWritings();
+const counts = await topicCounts();
+const years = await writingYears();
+---
+
+<!-- No eyebrow here. The page title already says Library, and repeating the
+     same word as a second uppercase element spends one of §5.2's two. -->
+<PageLayout
+	title="The Library"
+	description="Everything here, newest first. Filter by topic or year, or read the catalogue straight down."
+>
+	{/* The filter sits in the shell but outside the scope it controls: it
+	    narrows the two indexes below it, and its own empty-state message
+	    belongs above the shelf that emptied. */}
+	<div class="shell">
+		<TopicFilter counts={counts} years={years} total={writings.length} scope="library-list" />
+	</div>
+
+	{/* One scope for both indexes, so a single filter narrows the shelf and
+	    the catalogue together. */}
+	<div id="library-list">
+		<section class="section" aria-labelledby="shelf-heading">
+			<div class="shell">
+				<div class="section__head" data-reveal>
+					<p class="label">The shelf</p>
+					<h2 class="section__heading" id="shelf-heading">Worth the lamp, one at a time</h2>
+				</div>
+
+				<WritingGrid items={writings} filterable priorityFirst />
+			</div>
+		</section>
+
+		<section class="section" id="catalogue" aria-labelledby="catalogue-heading">
+			<div class="shell">
+				<hr class="rule" />
+
+				<div class="section__head" data-reveal style="--i: 1">
+					<p class="label">The card catalogue</p>
+					<h2 class="section__heading" id="catalogue-heading">Everything, in the order it arrived</h2>
+				</div>
+
+				<Catalogue entries={writings} filterable />
+			</div>
+		</section>
+	</div>
+
+	<section class="section">
+		<div class="shell">
+			<Newsletter />
+		</div>
+	</section>
+</PageLayout>

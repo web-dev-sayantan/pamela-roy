@@ -1,0 +1,244 @@
+---
+/**
+ * One offer.
+ *
+ * The route's whole existence is the extensibility test: `getStaticPaths`
+ * reads the collection, so a new file in src/content/services becomes a page
+ * with no route edit, and the index links to it with no list edit. Everything
+ * this page shows — the terms, the checklist, the enquiry address — is read
+ * off frontmatter rather than written here, so the two can never disagree.
+ *
+ * The page is laid out like an article, prose in the measure and a sticky
+ * margin beside it, because it is the same act of reading. Only the contents
+ * is swapped for the things a reader actually wants beside an offer: what it
+ * costs, what is in it, and how to start.
+ */
+import { render } from 'astro:content';
+
+import PageLayout from '../../layouts/PageLayout.astro';
+import Measured from '../../layouts/Measured.astro';
+import Prose from '../../components/Prose.astro';
+import Button from '../../components/Button.astro';
+
+import { allServices, serviceHref, enquiryHref, type Service } from '../../lib/services';
+
+export async function getStaticPaths() {
+	const services = await allServices();
+
+	return services.map((service) => ({
+		params: { slug: service.id },
+		props: { service, all: services },
+	}));
+}
+
+const { service, all } = Astro.props as { service: Service; all: Service[] };
+
+const { Content } = await render(service);
+
+/* The other offers, so an offer page is never a dead end. With one offer in
+   the collection this is empty and the way back to the index stands alone. */
+const others = all.filter((candidate) => candidate.id !== service.id);
+
+/* Keyed, because the two are different facts and a list of two rows both
+   labelled "Engagement" would be a small lie. Either may be absent. */
+const terms = [
+	service.data.engagement && { key: 'Engagement', value: service.data.engagement },
+	service.data.price && { key: 'Price', value: service.data.price },
+].filter((term): term is { key: string; value: string } => Boolean(term));
+---
+
+<PageLayout
+	eyebrow="Services"
+	title={service.data.title}
+	description={service.data.summary}
+	/* A genuinely nested route: the offer sits inside the services list, and
+	   the reader arrived through it. */
+	trail={[
+		{ name: 'Services', path: '/services' },
+		{ name: service.data.title, path: serviceHref(service) },
+	]}
+>
+	{/* Flush: this section opens on the prose and the terms, not on a heading,
+	    so it takes the head's bottom space rather than a second section's. */}
+	<section class="section section--flush">
+		{/* The aside comes first in the source and stays first on a phone: a
+		    visitor on a small screen wants the price and the way to get in touch
+		    before the essay, not after it. Measured puts it back in the margin
+		    once there is room for one. */}
+		<div class="shell">
+			<Measured aside>
+				<Fragment slot="aside">
+					<aside class="service__aside">
+				{
+					terms.length > 0 && (
+						<dl class="service__terms">
+						{terms.map(({ key, value }) => (
+							<div class="service__term">
+								<dt class="label">{key}</dt>
+								<dd>{value}</dd>
+							</div>
+						))}
+					</dl>
+					)
+				}
+
+				{service.data.includes.length > 0 && (
+					<div class="service__includes">
+						<p class="label">What is in it</p>
+						<ul class="checklist" role="list">
+							{service.data.includes.map((line) => (
+								<li>
+									<svg
+										class="checklist__mark"
+										viewBox="0 0 16 16"
+										width="1em"
+										height="1em"
+										aria-hidden="true"
+										focusable="false"
+									>
+										<path
+											d="M2.5 8.5 6 12l7.5-8.5"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="1.6"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+										/>
+									</svg>
+									<span>{line}</span>
+								</li>
+							))}
+						</ul>
+					</div>
+				)}
+
+				{/* The one place on the site where a filled button is right. An
+				    offer page's job is to be acted on, and this is a single
+				    element in a single column — not a viewport's worth of
+				    accent. */}
+				<Button href={enquiryHref(service.data.title)}>Let's talk</Button>
+					</aside>
+				</Fragment>
+
+				<Prose>
+					<Content />
+				</Prose>
+			</Measured>
+		</div>
+	</section>
+
+	<section class="section">
+		<div class="shell">
+			<hr class="rule" />
+
+			<nav class="service__foot" aria-label="Other services">
+				<p class="label">{others.length > 0 ? 'The other way to work' : 'All services'}</p>
+
+				<ul class="service__others" role="list">
+					{others.map((other) => (
+						<li>
+							<a href={serviceHref(other)}>{other.data.title}</a>
+						</li>
+					))}
+					{others.length === 0 && (
+						<li>
+							<a href="/services">Back to the list</a>
+						</li>
+					)}
+				</ul>
+			</nav>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	/* The measure, the margin and the sticky aside all belong to Measured —
+	   the same division the article body makes, and the long static pages. */
+	.service__aside {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-5);
+	}
+
+	/* The price and the shape of the engagement, as label over value. The key
+	   is in the muted voice so the value is what the eye lands on. */
+	.service__terms {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-3) var(--sp-6);
+		margin: 0;
+	}
+
+	.service__term dt {
+		margin-block-end: 0.35em;
+	}
+
+	.service__term dd {
+		margin: 0;
+		color: var(--ink);
+		text-wrap: balance;
+	}
+
+	.checklist {
+		margin: var(--sp-3) 0 0;
+		padding: 0;
+		list-style: none;
+		color: var(--ink-soft);
+	}
+
+	.checklist li {
+		display: flex;
+		align-items: baseline;
+		gap: 0.7em;
+		line-height: 1.5;
+	}
+
+	.checklist li + li {
+		margin-block-start: 0.5em;
+	}
+
+	/* The tick is the mountain, not the lamp. Ember is already spent on the
+	   button beside it, and §4 allows one accent per viewport. */
+	.checklist__mark {
+		flex: none;
+		/* Aligned to the first line rather than centred on the item: a
+		   two-line entry should read as one item with a tick on it, not as a
+		   tick floating in the gap between two lines. The offset is half the
+		   difference between the line box and the 1em glyph. */
+		align-self: flex-start;
+		margin-block-start: 0.25em;
+		color: var(--pine);
+	}
+
+	.service__foot {
+		margin-block-start: var(--sp-6);
+	}
+
+	/* Fraunces at card-title size: the sibling offers are worth reading, not
+	   worth a form. */
+	.service__others {
+		margin: var(--sp-4) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.service__others li + li {
+		margin-block-start: var(--sp-2);
+	}
+
+	.service__others a {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 30;
+		font-weight: 600;
+		font-size: var(--fs-display-s);
+		line-height: 1.2;
+		color: var(--ink);
+		text-decoration: none;
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.service__others a:hover {
+		color: var(--ember);
+	}
+</style>

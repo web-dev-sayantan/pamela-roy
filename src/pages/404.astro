@@ -1,0 +1,48 @@
+---
+/**
+ * /404 — the end of the shelf.
+ *
+ * A dead end is a good place to be useful, so this offers the three most recent
+ * pieces rather than only a way back. The line is the page title, which means
+ * it is the one place uppercase is spent here — §5.2 allows the hero and the
+ * page title, and a 404 has no hero.
+ *
+ * It is written in sentence case in the source like every other title on the
+ * site, and uppercased by the layout, so the two-case rule is decided in one
+ * place rather than re-typed.
+ */
+import PageLayout from '../layouts/PageLayout.astro';
+import WritingGrid from '../components/WritingGrid.astro';
+import Button from '../components/Button.astro';
+
+import { allWritings } from '../lib/writings';
+
+const suggestions = (await allWritings()).slice(0, 3);
+---
+
+<PageLayout
+	title="You've walked past the end of this shelf"
+	description="Which happens. There is nothing at this address, and inventing something here would be less useful than offering you something to read."
+	noindex
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<Button href="/">Back to the room</Button>
+		</div>
+	</section>
+
+	{
+		suggestions.length > 0 && (
+			<section class="section">
+				<div class="shell">
+					<div class="section__head">
+						<p class="label">If you came for the writing</p>
+						<h2 class="section__heading">Three things that are here</h2>
+					</div>
+
+					<WritingGrid items={suggestions} more="Read it" />
+				</div>
+			</section>
+		)
+	}
+</PageLayout>

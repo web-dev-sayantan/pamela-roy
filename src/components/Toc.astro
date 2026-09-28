@@ -1,0 +1,185 @@
+---
+/**
+ * Toc — the in-article contents, for pieces long enough to need one.
+ *
+ * Reads its entries from `render()`'s `headings`, so a heading added to the
+ * Markdown appears here with no extra bookkeeping. Only depth 2 and 3 are
+ * listed: the article's own title is the h1, supplied by WritingLayout, and a
+ * contents list that repeats it is noise.
+ *
+ * The links are ordinary in-page anchors, so the contents work with
+ * JavaScript off. The script only adds the part that needs it — marking which
+ * section you are currently in.
+ */
+interface Heading {
+	depth: number;
+	slug: string;
+	text: string;
+}
+
+interface Props {
+	headings: Heading[];
+}
+
+const { headings } = Astro.props;
+const items = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+
+/* One string, used as both the visible label and the nav's accessible name,
+   so the two can never drift apart. */
+const LABEL = 'On this page';
+---
+
+{
+	items.length > 1 && (
+		<nav class="toc" aria-label={LABEL}>
+			<p class="toc__label">{LABEL}</p>
+			<ol class="toc__list">
+				{items.map((heading) => (
+					<li class="toc__item" data-depth={heading.depth}>
+						<a href={`#${heading.slug}`}>{heading.text}</a>
+					</li>
+				))}
+			</ol>
+		</nav>
+	)
+}
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+	/**
+	 * Marks the section you are in. Rather than an IntersectionObserver this
+	 * walks the headings and asks which is the last one to have passed a line
+	 * a third of the way down the screen — which is what "you are here"
+	 * actually means when a section is longer than the viewport, and does not
+	 * flicker when two headings are on screen at once.
+	 *
+	 * Only some articles have a contents list, and a navigation changes which
+	 * article you are reading, so the headings are re-read per page and the
+	 * scroll listener is registered once and reads whichever contents is live.
+	 */
+	let headings: HTMLElement[] = [];
+	let links: HTMLAnchorElement[] = [];
+
+	const setCurrent = (id: string) => {
+		for (const link of links) {
+			// aria-current, not a class: it is the state a screen reader
+			// should be able to report.
+			if (link.hash.slice(1) === id) link.setAttribute('aria-current', 'true');
+			else link.removeAttribute('aria-current');
+		}
+	};
+
+	const update = () => {
+		if (headings.length === 0) return;
+
+		const line = window.innerHeight * 0.3;
+		let current = headings[0];
+
+		for (const heading of headings) {
+			if (heading.getBoundingClientRect().top <= line) current = heading;
+		}
+
+		if (current) setCurrent(current.id);
+	};
+
+	let queued = false;
+	const onScroll = () => {
+		if (queued) return;
+		queued = true;
+		requestAnimationFrame(() => {
+			queued = false;
+			update();
+		});
+	};
+
+	addEventListener('scroll', onScroll, { passive: true });
+	addEventListener('resize', onScroll, { passive: true });
+
+	perPage(() => {
+		const toc = document.querySelector<HTMLElement>('.toc');
+
+		links = toc ? [...toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')] : [];
+		headings = links
+			.map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
+			.filter((el): el is HTMLElement => el !== null);
+
+		update();
+	});
+</script>
+
+<style>
+	.toc {
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		line-height: var(--lh-ui);
+	}
+
+	.toc__label {
+		margin-block-end: var(--sp-3);
+		padding-block-end: var(--sp-2);
+		border-block-end: 1px solid var(--rule);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink-muted);
+	}
+
+	.toc__list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.toc__item + .toc__item {
+		margin-block-start: var(--sp-2);
+	}
+
+	/* h3s step in one level, so the list reads as two depths. */
+	.toc__item[data-depth='3'] {
+		padding-inline-start: var(--sp-3);
+	}
+
+	.toc__item a {
+		display: block;
+		color: var(--ink-soft);
+		text-decoration: none;
+		border-block-end: 1px solid transparent;
+		transition:
+			color var(--t-micro) var(--ease-out),
+			border-color var(--t-micro) var(--ease-out);
+	}
+
+	.toc__item a:hover {
+		color: var(--ink);
+	}
+
+	.toc__item a[aria-current] {
+		color: var(--ember);
+		border-block-end-color: var(--ember);
+	}
+</style>

@@ -1,0 +1,162 @@
+---
+/**
+ * SiteFooter — stacked, per the reference: a Fraunces tagline, the nav in
+ * two columns, a row of uppercase meta links, and the copyright line. A
+ * hairline above separates it from the page; the bottom padding clears the
+ * room frame so the last line never slides under the casing.
+ */
+import { SITE, isCurrentPath } from '../lib/site';
+
+// One nav, two visual columns. No grouping is invented — the list is simply
+// halved, so a nav edit in site.ts reflows here on its own.
+const midpoint = Math.ceil(SITE.nav.length / 2);
+const columns = [SITE.nav.slice(0, midpoint), SITE.nav.slice(midpoint)];
+
+// The footer repeats the nav and adds three links of its own, so it has to
+// answer "is this the current page" too. Same rule as the header.
+const here = Astro.url.pathname;
+const isCurrent = (href: string) => isCurrentPath(here, href);
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+	<div class="shell site-footer__inner">
+		<p class="site-footer__tagline">{SITE.tagline}</p>
+
+		<nav class="site-footer__nav" aria-label="Footer">
+			{
+				columns.map((column) => (
+					<ul>
+						{column.map((item) => (
+							<li>
+								<a
+									class="footer-link"
+									href={item.href}
+									aria-current={isCurrent(item.href) ? 'page' : undefined}
+								>
+									{item.label}
+								</a>
+							</li>
+						))}
+					</ul>
+				))
+			}
+		</nav>
+
+		<ul class="site-footer__meta">
+			<li>
+				<a
+					class="footer-link"
+					href="/colophon"
+					aria-current={isCurrent('/colophon') ? 'page' : undefined}>Colophon</a
+				>
+			</li>
+			<li>
+				<a
+					class="footer-link"
+					href="/rss.xml"
+					aria-current={isCurrent('/rss.xml') ? 'page' : undefined}>RSS</a
+				>
+			</li>
+			<li><a class="footer-link" href={`mailto:${SITE.email}`}>Email</a></li>
+		</ul>
+
+		<p class="site-footer__copy">© {year} {SITE.name}</p>
+	</div>
+</footer>
+
+<style>
+	.site-footer {
+		border-top: 1px solid var(--rule);
+		padding-block: var(--sp-section) calc(var(--frame-w) + var(--sp-5));
+	}
+
+	.site-footer__inner {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-5);
+	}
+
+	.site-footer__tagline {
+		font-family: var(--font-display);
+		font-size: var(--fs-title);
+		font-weight: 500;
+		line-height: var(--lh-heading);
+		max-width: 24ch;
+	}
+
+	.site-footer__nav {
+		display: flex;
+		gap: var(--sp-6);
+	}
+
+	.site-footer__nav ul {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		list-style: none;
+		padding: 0;
+	}
+
+	.site-footer__meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-2) var(--sp-4);
+		list-style: none;
+		padding: 0;
+	}
+
+	/* Footer links speak in the same small tracked voice as the header nav,
+	   with the same ember wipe on hover. */
+	.footer-link {
+		display: inline-block;
+		position: relative;
+		padding-block: 0.3em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		line-height: var(--lh-ui);
+		text-transform: uppercase;
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+
+	.footer-link::after {
+		content: '';
+		position: absolute;
+		inset-inline: 0;
+		bottom: 0;
+		height: 1px;
+		background: var(--ember);
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform var(--t-base) var(--ease-out);
+	}
+
+	.footer-link:hover {
+		color: var(--ink);
+	}
+
+	.footer-link:hover::after {
+		transform: scaleX(1);
+	}
+
+	/* The page you are on keeps its rule showing, in the accent, as the header
+	   nav does. A reader who arrived by scrolling to the foot is on this page
+	   and should be able to see that. */
+	.footer-link[aria-current='page'] {
+		color: var(--ember);
+	}
+
+	.footer-link[aria-current='page']::after {
+		transform: scaleX(1);
+	}
+
+	.site-footer__copy {
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		color: var(--ink-muted);
+	}
+</style>

@@ -1,0 +1,15 @@
+---
+/**
+ * /colophon — how the site is made.
+ *
+ * The page that exists to prove the `pages` collection earns its place: the
+ * body is a Markdown file, and the only thing in the route is the file's id.
+ * Add `src/content/pages/<id>.md` and a matching route is four lines long.
+ */
+import StaticPage from '../layouts/StaticPage.astro';
+import { pageById } from '../lib/pages';
+
+const page = await pageById('colophon');
+---
+
+<StaticPage page={page} />

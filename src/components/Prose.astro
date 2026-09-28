@@ -1,0 +1,24 @@
+---
+/**
+ * Prose — the wrapper that hands Markdown its reading system.
+ *
+ * The class does all the work: `prose.css` holds the measure-independent
+ * rhythm (short paragraphs, heading sizes, the link lift, the drop cap), and
+ * WritingLayout supplies the measure. Keeping the two apart is what lets the
+ * same styles serve an article body and a static page from `src/content/pages`.
+ */
+interface Props {
+	/**
+	 * Merged onto the wrapper alongside `prose`. Exists so a narrower measure
+	 * or a different alignment can be added by the caller — a standalone page
+	 * from the `pages` collection — without forking the wrapper.
+	 */
+	class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={['prose', className]}>
+	<slot />
+</div>

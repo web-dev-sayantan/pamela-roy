@@ -1,0 +1,72 @@
+---
+/**
+ * Measured — the measure, and whatever sits in the margin beside it.
+ *
+ * One division, used by the offer pages and by the long static pages: the body
+ * copy holds the measure on the left, and a short block of facts or a contents
+ * takes the space to its right once there is room for a margin.
+ *
+ * Below the breakpoint there is no margin, so the two stack — and the aside is
+ * first in the source, because that is the order a small screen needs. A phone
+ * visitor wants the price and the way to get in touch, or a contents, before
+ * the essay rather than after it.
+ *
+ * The measure itself belongs to `.prose`, not to here; see the note at the top
+ * of prose.css. This file is only responsible for where it sits.
+ *
+ * WritingLayout carries its own version of the same division, because its
+ * aside also has to disappear below the breakpoint and clear the reading
+ * progress hairline. Two implementations of the idea, each with one caller
+ * shape; this is the one for pages that are not articles.
+ */
+interface Props {
+	/**
+	 * Whether anything goes in the margin. With nothing to put there the grid
+	 * is a single column and the measure simply holds its own — which is why
+	 * this is a boolean rather than a required slot.
+	 */
+	aside?: boolean;
+}
+
+const { aside = false } = Astro.props;
+---
+
+<div class="measured">
+	{aside && <div class="measured__aside"><slot name="aside" /></div>}
+
+	<div class="measured__body">
+		<slot name="lede" />
+		<slot />
+	</div>
+</div>
+
+<style>
+	.measured {
+		display: grid;
+		/* One column until there is room for two; with no aside this is the
+		   whole layout and the body simply sits flush left in the shell. */
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: var(--sp-6);
+	}
+
+	@media (min-width: 1080px) {
+		.measured {
+			grid-template-columns: minmax(0, var(--measure)) minmax(0, 1fr);
+			column-gap: clamp(2rem, 5vw, 5rem);
+		}
+
+		.measured__body {
+			grid-column: 1;
+			grid-row: 1;
+		}
+
+		.measured__aside {
+			grid-column: 2;
+			grid-row: 1;
+			position: sticky;
+			/* Clears the sticky header, as the article's aside does. */
+			top: calc(var(--frame-w) + var(--header-h) + var(--sp-5));
+			align-self: start;
+		}
+	}
+</style>

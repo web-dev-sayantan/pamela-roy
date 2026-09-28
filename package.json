@@ -1,5 +1,5 @@
 {
-  "name": "",
+  "name": "pamela-roy",
   "type": "module",
   "version": "0.0.1",
   "engines": {
@@ -9,12 +9,41 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check:types": "astro check",
+    "check:hero": "python3 scripts/check-manifesto.py",
+    "check:visual": "bun run scripts/shoot.ts",
+    "check:behaviour": "bun run scripts/behaviour.ts",
+    "check:seo": "bun run scripts/check-seo.ts",
+    "check:cards": "python3 scripts/check-cards.py",
+    "check:live": "bun run scripts/check-live.ts",
+    "check:print": "bun run scripts/shoot-print.ts",
+    "check:fonts": "bun run scripts/check-fonts.ts",
+    "check:lamp": "bun run scripts/check-lamp.ts",
+    "check:transitions": "bun run scripts/check-transitions.ts",
+    "check:a11y": "bun run scripts/check-a11y.ts",
+    "check:content": "bun run scripts/check-content.ts",
+    "check:perf": "bun run scripts/check-perf.ts",
+    "check:images": "bun run scripts/check-images.ts",
+    "check:responsive": "bun run scripts/check-responsive.ts",
+    "check:images:baseline": "PERF=baseline bun run scripts/check-perf.ts",
+    "serve:dist": "bun run scripts/lib/serve.ts",
+    "favicon": "python3 scripts/make-favicon.py"
   },
   "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
     "astro": "^7.3.5"
   },
   "allowScripts": {
     "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "axe-core": "^4.13.0",
+    "typescript": "^6"
   }
 }

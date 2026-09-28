@@ -1,0 +1,76 @@
+---
+/**
+ * Elsewhere — the short row of links out of the room.
+ *
+ * Used by /about and /contact, so the row is one thing rather than two
+ * slightly different ones.
+ *
+ * The email address is always in it, and always last. It is the one link here
+ * that is guaranteed to work and the one most likely to be read, so it is the
+ * floor: whatever else is listed, there is always a way to write. The profiles
+ * come from SITE.socials, which is empty until Pamela's real ones are known —
+ * an empty row of nothing would be worse than a row with one honest link.
+ *
+ * `label` is a prop because the row is the payoff to whatever the page's prose
+ * has just been about. On /about the prose has a section headed "Elsewhere",
+ * so repeating that word here would say it twice; on /contact there is no such
+ * heading and the default is right.
+ */
+import { SITE } from '../lib/site';
+
+interface Props {
+	label?: string;
+}
+
+const { label = 'Elsewhere' } = Astro.props;
+
+const links = [...SITE.socials, { label: SITE.email, href: `mailto:${SITE.email}` }];
+---
+
+<nav class="elsewhere" aria-label={label}>
+	<p class="label">{label}</p>
+
+	<ul class="elsewhere__list" role="list">
+		{
+			links.map((link) => (
+				<li>
+					<a class="elsewhere__link" href={link.href}>
+						{link.label}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>
+
+<style>
+	.elsewhere__list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-2) var(--sp-5);
+		margin: var(--sp-3) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	/* The small tracked voice the header and footer both use. An address on
+	   the web is awkward at this size but it is an address, not a headline,
+	   and the alternative is a link labelled "email" that hides the only
+	   detail the reader needs. */
+	.elsewhere__link {
+		display: inline-block;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		line-height: var(--lh-ui);
+		text-transform: uppercase;
+		color: var(--ink);
+		text-decoration: none;
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	.elsewhere__link:hover {
+		color: var(--ember);
+	}
+</style>

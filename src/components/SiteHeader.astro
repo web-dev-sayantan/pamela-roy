@@ -1,0 +1,385 @@
+---
+/**
+ * SiteHeader — wordmark left, nav right, sticky.
+ *
+ * The bar is transparent at the top of the page and warms to paper with a
+ * soft blur once the reader has scrolled 8px. On narrow screens the nav
+ * collapses behind a MENU button that opens a full-screen panel above the
+ * room frame; the panel traps focus, closes on Escape, and returns focus
+ * to the button that opened it.
+ */
+import { SITE, isCurrentPath } from '../lib/site';
+import ThemeToggle from './ThemeToggle.astro';
+
+// One rule for "is this the page you are on", shared with the footer. See
+// isCurrentPath in lib/site.
+const here = Astro.url.pathname;
+
+const isCurrent = (href: string) => isCurrentPath(here, href);
+---
+
+<header id="site-header" class="site-header">
+	<div class="shell site-header__bar">
+		<a class="wordmark" href="/" aria-label={`${SITE.name} — home`}>{SITE.name}</a>
+
+		<nav class="site-header__nav" aria-label="Primary">
+			<ul>
+				{
+					SITE.nav.map((item) => (
+						<li>
+							<a
+								class="nav-link"
+								href={item.href}
+								aria-current={isCurrent(item.href) ? 'page' : undefined}
+							>
+								{item.label}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</nav>
+
+		<div class="site-header__controls">
+			<ThemeToggle />
+
+			<button
+				type="button"
+				class="menu-button"
+				aria-expanded="false"
+				aria-controls="menu-panel"
+			>
+				Menu
+			</button>
+		</div>
+	</div>
+
+	<div id="menu-panel" class="menu-panel" role="dialog" aria-modal="true" aria-label="Site menu" hidden>
+		<div class="menu-panel__inner">
+			<button type="button" class="menu-panel__close" data-close>
+				Close <span aria-hidden="true">×</span>
+			</button>
+
+			<nav aria-label="Mobile">
+				<ul class="menu-panel__list">
+					{
+						SITE.nav.map((item) => (
+							<li>
+								<a
+									class="menu-panel__link"
+									href={item.href}
+									aria-current={isCurrent(item.href) ? 'page' : undefined}
+								>
+									{item.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</nav>
+		</div>
+	</div>
+</header>
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+	/**
+	 * The header is replaced on every navigation but this script is not re-run,
+	 * so the references below are refreshed by perPage and the one window
+	 * listener is registered once, out here, to read whichever header is live.
+	 */
+	let header: HTMLElement | null = null;
+
+	const onScroll = () => {
+		header?.toggleAttribute('data-scrolled', window.scrollY > 8);
+	};
+
+	addEventListener('scroll', onScroll, { passive: true });
+
+	// Mobile menu: a small state machine with a focus trap. No framework,
+	// no dependencies — the panel is either hidden or it owns the keyboard.
+	let openButton: HTMLButtonElement | null = null;
+	let panel: HTMLElement | null = null;
+	let closeButton: HTMLButtonElement | null = null;
+	let lastFocused: HTMLElement | null = null;
+
+	/* Only elements that can actually take focus, so the trap wraps between
+	   real tab stops rather than between whatever happened to match. */
+	const focusables = () =>
+		panel
+			? [...panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')]
+			: [];
+
+	const onKeydown = (event: KeyboardEvent) => {
+		if (event.key === 'Escape') {
+			closeMenu();
+			return;
+		}
+
+		if (event.key !== 'Tab') return;
+
+		const items = focusables();
+		if (items.length === 0) return;
+
+		const first = items[0];
+		const last = items[items.length - 1];
+
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
+		}
+	};
+
+	function openMenu() {
+		if (!panel || !openButton) return;
+		// Focus is restored to whatever held it, which is the toggle itself
+		// when the panel was opened by pointer. activeElement is typed as
+		// Element because it can be the document, so it is narrowed here.
+		lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		panel.hidden = false;
+		openButton.setAttribute('aria-expanded', 'true');
+		document.body.style.overflow = 'hidden';
+		document.addEventListener('keydown', onKeydown);
+		closeButton?.focus();
+	}
+
+	function closeMenu() {
+		if (!panel || !openButton) return;
+		panel.hidden = true;
+		openButton.setAttribute('aria-expanded', 'false');
+		document.body.style.overflow = '';
+		document.removeEventListener('keydown', onKeydown);
+		lastFocused?.focus();
+	}
+
+	perPage(() => {
+		header = document.getElementById('site-header');
+		openButton = document.querySelector<HTMLButtonElement>('.menu-button');
+		panel = document.getElementById('menu-panel');
+		closeButton = panel?.querySelector<HTMLButtonElement>('[data-close]') ?? null;
+		lastFocused = null;
+
+		onScroll();
+
+		openButton?.addEventListener('click', () => {
+			const isOpen = openButton?.getAttribute('aria-expanded') === 'true';
+			if (isOpen) {
+				closeMenu();
+			} else {
+				openMenu();
+			}
+		});
+
+		closeButton?.addEventListener('click', closeMenu);
+
+		// A link tap means the reader is leaving; reset the menu state so the
+		// back button never returns to a trapped, scroll-locked page.
+		panel?.querySelectorAll('a[href]').forEach((link) => {
+			link.addEventListener('click', closeMenu);
+		});
+	});
+</script>
+
+<style>
+	/* The header sticks to the viewport top, but its first frame-width of
+	   height is empty padding: that band sits under the room frame, so the
+	   wordmark and nav always start inside the casing — both in flow at the
+	   top of the page and once stuck mid-scroll. */
+	.site-header {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		padding-top: var(--frame-w);
+		transition: background-color var(--t-base) var(--ease-out);
+	}
+
+	.site-header__bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--sp-4);
+		min-height: var(--header-h);
+	}
+
+	/* Transparent at rest; a breath of paper and blur once scrolled. The
+	   background stays a touch translucent so the blur has something to do. */
+	.site-header[data-scrolled] {
+		background-color: color-mix(in srgb, var(--paper) 90%, transparent);
+		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(8px);
+	}
+
+	.wordmark {
+		font-family: var(--font-display);
+		font-size: 1.375rem;
+		font-weight: 500;
+		line-height: 1;
+		color: var(--ink);
+		text-decoration: none;
+	}
+
+	.site-header__nav ul {
+		display: flex;
+		gap: var(--sp-4);
+		list-style: none;
+		padding: 0;
+	}
+
+	/* Nav links trade the default underline for an ember line that wipes in
+	   from the left. The current page keeps its line, permanently lit. */
+	.nav-link {
+		position: relative;
+		display: inline-block;
+		padding-block: 0.5em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		line-height: var(--lh-ui);
+		text-transform: uppercase;
+		color: var(--ink-soft);
+		text-decoration: none;
+	}
+
+	.nav-link::after {
+		content: '';
+		position: absolute;
+		inset-inline: 0;
+		bottom: 0;
+		height: 1px;
+		background: var(--ember);
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform var(--t-base) var(--ease-out);
+	}
+
+	.nav-link:hover::after {
+		transform: scaleX(1);
+	}
+
+	.nav-link[aria-current='page'] {
+		color: var(--ember);
+	}
+
+	.nav-link[aria-current='page']::after {
+		transform: scaleX(1);
+	}
+
+	/* The lamp and the MENU button are one cluster at the right-hand end, so
+	   they hold a single gap between them rather than the bar's `space-between`
+	   deciding their distance. */
+	.site-header__controls {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-4);
+	}
+
+	/* The MENU button only exists where the inline nav does not. */
+	.menu-button {
+		display: none;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink);
+		padding-block: 0.5em;
+	}
+
+	/* The mobile panel covers the whole viewport above the frame, with its
+	   own frame clearance so no link ever touches the casing. */
+	.menu-panel {
+		position: fixed;
+		inset: 0;
+		z-index: 300;
+		overflow-y: auto;
+		background: var(--paper);
+	}
+
+	.menu-panel__inner {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-6);
+		min-height: 100%;
+		padding: calc(var(--frame-w) + var(--sp-5)) calc(var(--frame-w) + var(--sp-4));
+	}
+
+	.menu-panel__close {
+		align-self: flex-end;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink);
+	}
+
+	.menu-panel__close span {
+		font-size: 1.2em;
+		line-height: 1;
+	}
+
+	.menu-panel__list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		list-style: none;
+		padding: 0;
+	}
+
+	/* Big Fraunces links, sentence case — the menu is chrome, not a second
+	   shout, so it stays out of the uppercase voice. */
+	.menu-panel__link {
+		font-family: var(--font-display);
+		font-size: clamp(2rem, 9vw, 3rem);
+		font-weight: 500;
+		line-height: 1.2;
+		color: var(--ink);
+		text-decoration: none;
+	}
+
+	.menu-panel__link:hover {
+		color: var(--ember);
+	}
+
+	.menu-panel__link[aria-current='page'] {
+		color: var(--ember);
+	}
+
+	@media (max-width: 768px) {
+		.site-header__nav {
+			display: none;
+		}
+
+		.menu-button {
+			display: inline-block;
+		}
+	}
+</style>

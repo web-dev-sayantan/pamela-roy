@@ -1,0 +1,61 @@
+---
+/**
+ * Newsletter — a bordered panel, not a pop-up.
+ *
+ * A modal is explicitly an anti-goal on this site (§13): the newsletter is
+ * worth wanting, but not worth interrupting a reading for. So it is a panel,
+ * offered here at the foot of the page and again, at more length, on
+ * /newsletter — where the signup form is the same SignupForm this panel uses.
+ */
+import SignupForm from './SignupForm.astro';
+---
+
+<aside class="newsletter" aria-labelledby="newsletter-heading">
+	<div class="newsletter__inner">
+		<p class="label">Letters</p>
+
+		<h2 class="newsletter__heading" id="newsletter-heading">
+			A letter when there is something worth sending.
+		</h2>
+
+		<p class="newsletter__body">
+			One long essay a month, with a short note about what I am reading. No
+			announcements and no offers. Leaving is one click and I will not take it
+			personally.
+		</p>
+
+		<SignupForm />
+	</div>
+</aside>
+
+<style>
+	/* A recessed panel — the one place on the site with a filled ground, and
+	   even here it is a step *into* the wall rather than a raised card. */
+	.newsletter {
+		background: var(--paper-deep);
+		border-radius: 2px;
+	}
+
+	.newsletter__inner {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-4);
+		padding: clamp(var(--sp-5), 5vw, var(--sp-7));
+	}
+
+	.newsletter__heading {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 60;
+		font-weight: 500;
+		font-size: var(--fs-display-m);
+		line-height: var(--lh-heading);
+		max-width: 22ch;
+		text-wrap: balance;
+	}
+
+	.newsletter__body {
+		max-width: var(--measure);
+		color: var(--ink-soft);
+	}
+</style>

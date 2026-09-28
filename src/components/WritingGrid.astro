@@ -1,0 +1,89 @@
+---
+/**
+ * WritingGrid — Move 6, the Shelf.
+ *
+ * Two columns at desktop, two at tablet, one on a phone. That sequence is a
+ * consequence of the measure rather than a stack of overrides: `columns` sets
+ * the count, and one breakpoint below which two columns can no longer share the
+ * frame collapses it to a single column.
+ */
+import type { Writing } from '../lib/writings';
+import WritingCard from './WritingCard.astro';
+import Empty from './Empty.astro';
+
+interface Props {
+	items: Writing[];
+	/** CSS grid columns. */
+	columns?: number;
+	/** Catalogue numbers for the cover plates, in order. */
+	numbered?: boolean;
+	/** The word after the arrow on each card. */
+	more?: string;
+	/** Marks the cards with the hooks TopicFilter narrows on. */
+	filterable?: boolean;
+	/**
+	 * Eager-loads the first card's cover, for a shelf that starts near the top of
+	 * the page.
+	 *
+	 * Off by default, and that default is correct for four of the five shelves on
+	 * the site: the home page's is below the manifesto and a whole section of
+	 * prose, and the ones on /404, /topics/* and an article's tail are all deep in
+	 * the document. Only /library puts a shelf at the top of the page, and only
+	 * there is the first cover the largest contentful paint. So it is the caller's
+	 * claim, made where the layout is known, rather than a guess made inside the
+	 * grid.
+	 */
+	priorityFirst?: boolean;
+}
+
+const {
+	items,
+	columns = 2,
+	numbered = true,
+	more,
+	filterable = false,
+	priorityFirst = false,
+} = Astro.props;
+---
+
+{
+	items.length > 0 ? (
+		<div class="shelf" style={`--shelf-columns: ${columns}`}>
+			{items.map((entry, index) => (
+				<WritingCard
+					entry={entry}
+					number={numbered ? index + 1 : undefined}
+					more={more}
+					filterable={filterable}
+					priority={priorityFirst && index === 0}
+				/>
+			))}
+		</div>
+	) : (
+		/* A real state, not a hypothetical one. Every piece in the collection
+		   can be a draft, and a production build of a library where all of
+		   them are would otherwise render a section heading over an empty grid
+		   and call it a page.
+
+		   The words live here rather than in Empty because the shelf is what
+		   this component is: the sentence names a shelf, and a caller that had
+		   to supply one would have to know that. */
+		<Empty>The shelf is bare. Nothing has been filed on it yet.</Empty>
+	)
+}
+
+<style>
+	.shelf {
+		display: grid;
+		grid-template-columns: repeat(var(--shelf-columns, 2), minmax(0, 1fr));
+		gap: var(--sp-7) clamp(2rem, 4vw, 3.5rem);
+	}
+
+	/* Below this the frame and the gutter leave a card narrower than 19rem,
+	   which is the point at which a 4:5 plate stops being worth looking at. */
+	@media (max-width: 860px) {
+		.shelf {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

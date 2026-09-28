@@ -1,0 +1,38 @@
+---
+/**
+ * JsonLd — one script tag, one block of structured data.
+ *
+ * Search engines, and a growing number of readers' own tools, read this rather
+ * than scraping the page. It is invisible, it is small, and it is the only
+ * machine-readable statement of who wrote what — so it is written from the
+ * same fields the visible page uses, and a piece cannot be tagged with a date
+ * its own meta row disagrees with.
+ *
+ * Astro renders JSON in a script tag safely when the type is set, but a stray
+ * `<` inside a description would still end the element early, so everything
+ * goes through escapeJson. That is not paranoia: an essay about markup is
+ * exactly the essay that would break it.
+ */
+interface Props {
+	/** The entity to describe. */
+	data: Record<string, unknown>;
+}
+
+const { data } = Astro.props;
+
+/**
+ * JSON.stringify escapes quotes and control characters but leaves `<`, `>` and
+ * `&` alone, and a literal `</script>` inside a string terminates the element
+ * no matter how the rest is quoted. Both are turned into their unicode
+ * equivalents, which are valid inside a JSON string and mean nothing to the
+ * HTML parser.
+ */
+const escapeJson = (value: string): string =>
+	value.replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+---
+
+<script
+	type="application/ld+json"
+	is:inline
+	set:html={escapeJson(JSON.stringify(data))}
+/>

@@ -1,0 +1,202 @@
+---
+/**
+ * BaseLayout — the html shell.
+ *
+ * Everything structural lives here: the document, the head, the no-flash theme
+ * script, the font preloads, the grain, and the skip link. Page-level
+ * chrome (header, footer, page title) belongs to PageLayout; individual pages
+ * just render their own <main>.
+ *
+ * The head is BaseHead's, not this file's. The distinction is worth holding:
+ * this layout is the room, BaseHead is what you hand to somebody else.
+ */
+
+// The three families, latin subset only. Not fontsource's `standard.css`
+// entry points — those ship every subset, which is 19 faces for an English
+// site. See styles/fonts.css for why the faces are declared by hand.
+import '../styles/fonts.css';
+
+// Cascade order matters: fonts, then tokens, then base, then prose, then
+// utilities, then print last — it overrides all of them and is inert on screen.
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/prose.css';
+import '../styles/utilities.css';
+import '../styles/print.css';
+
+import { ClientRouter } from 'astro:transitions';
+import Grain from '../components/Grain.astro';
+import BaseHead from '../components/BaseHead.astro';
+import type { HeadProps } from '../components/BaseHead.astro';
+import { SITE } from '../lib/site';
+
+type Props = HeadProps;
+
+const {
+	title = SITE.name,
+	description,
+	type,
+	image,
+	imageAlt,
+	publishedTime,
+	modifiedTime,
+	section,
+	noindex,
+} = Astro.props;
+
+/**
+ * The page's own address, for print.
+ *
+ * A sheet of paper that has left the building has to say where it came from,
+ * and there is no way to write a URL in CSS — @page margin boxes exist in the
+ * spec and in no browser that ships. So the address is a real element, hidden on
+ * screen by one rule in print.css and revealed on paper by another. It is the
+ * only thing this layout knows about printing; the stylesheet decides what
+ * else survives.
+ */
+const url = new URL(Astro.url.pathname, Astro.site ?? SITE.url).href;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead {title} {description} {type} {image} {imageAlt} {publishedTime} {modifiedTime} {section} {noindex} />
+
+		{/*
+			The crossfade, §9's "view transition | crossfade, no slide".
+
+			ClientRouter swaps the document instead of reloading it, so a reader
+			moving between pages gets the same 300ms ease-out as a hover gets —
+			no flash of a white document between two warm rooms, and the back
+			button arrives at a remembered scroll position. What it costs is
+			stated in base.css, where the animation itself lives: the document is
+			now assembled at runtime, so every script that touches the page has to
+			be written to survive a swap. That is what astro:page-load is for.
+		*/}
+		<ClientRouter />
+	</head>
+	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<slot />
+
+		{/* Print only. Sits outside the slot so it is the last thing on any
+		    page regardless of which layout composed it. */}
+		<p class="print-url">{url}</p>
+
+		<Grain />
+	</body>
+</html>
+
+<script>
+	/**
+	 * Scroll reveal — one shared IntersectionObserver for the whole site.
+	 *
+	 * Elements carrying [data-reveal] start translated down and faded, and get
+	 * .is-visible when they come into view. Stagger comes from --i, set inline
+	 * by whichever component owns the element, so nothing has to count
+	 * siblings in JavaScript.
+	 *
+	 * The observer is created once and re-binds on every navigation, which is
+	 * what makes this survive the crossfade. No framework, ~20 lines.
+	 */
+	let observer: IntersectionObserver | undefined;
+
+	const show = (targets: NodeListOf<HTMLElement>) => {
+		// With reduced motion the reveal is not a motion effect, it is just a
+		// delay. Show everything at once rather than leaving the page empty.
+		if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			targets.forEach((el) => el.classList.add('is-visible'));
+			return;
+		}
+
+		observer ??= new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (!entry.isIntersecting) continue;
+					entry.target.classList.add('is-visible');
+					observer?.unobserve(entry.target);
+				}
+			},
+			{ rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
+		);
+
+		targets.forEach((el) => observer?.observe(el));
+	};
+
+	/**
+	 * A page that arrives by crossfade arrives whole.
+	 *
+	 * The browser photographs the new page at the moment the swap is over, and
+	 * that photograph is what the reader watches fade in — so anything still
+	 * waiting to be revealed is photographed *invisible*, and the page lands as
+	 * a header and a title with its own content trickling in a beat later. Two
+	 * arrival motions, one of them invisible, is worse than either alone.
+	 *
+	 * So the incoming document is marked here, at `astro:before-swap`, while it
+	 * is still detached and while `is-visible` costs nothing: an element that is
+	 * inserted already carrying its final class has no transition to run, so
+	 * the snapshot is of a page that has arrived. The reveal keeps its own
+	 * choreography on a first visit and on a long scroll, which is where it
+	 * was written for.
+	 */
+	document.addEventListener('astro:before-swap', (event) => {
+		for (const el of event.newDocument?.querySelectorAll('[data-reveal]') ?? []) {
+			el.classList.add('is-visible');
+		}
+	});
+
+	// `astro:page-load` fires on first load and again after every navigation.
+	document.addEventListener('astro:page-load', () => {
+		show(document.querySelectorAll<HTMLElement>('[data-reveal]:not(.is-visible)'));
+	});
+
+	show(document.querySelectorAll<HTMLElement>('[data-reveal]:not(.is-visible)'));
+</script>
+
+<style>
+	/* The hidden state is scoped to .js, which the head script sets before
+	   first paint. With JavaScript off nothing is hidden, so the page is
+	   simply a page. */
+	.js :where([data-reveal]) {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+
+	.js :where([data-reveal].is-visible) {
+		opacity: 1;
+		transform: none;
+		transition:
+			opacity var(--t-base) var(--ease-out),
+			transform var(--t-base) var(--ease-out);
+		transition-delay: calc(var(--i, 0) * 60ms);
+	}
+
+	.skip-link {
+		position: fixed;
+		/* Anchored at the very top and hidden by its own height, so it is
+		   unambiguously off screen rather than a sliver of it. On focus it
+		   slides down to just inside the casing — the frame stays visible all
+		   the way round it, like everything else meant to be read. */
+		top: 0;
+		left: calc(var(--frame-w) + var(--sp-3));
+		z-index: 400;
+		padding: 0.7em 1.2em;
+		background: var(--paper-raised);
+		color: var(--ink);
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		text-decoration: none;
+		border: 1px solid var(--ember);
+		border-radius: 2px;
+		transform: translateY(calc(-100% - 2px));
+		transition: transform var(--t-base) var(--ease-out);
+	}
+
+	.skip-link:focus {
+		transform: translateY(calc(var(--frame-w) + var(--sp-3)));
+	}
+</style>

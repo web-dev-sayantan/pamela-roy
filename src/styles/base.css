@@ -1,0 +1,283 @@
+/* =============================================================================
+   base.css — the room itself: reset, page surface, the frame, and the
+   typographic defaults every page inherits. Component styles never re-declare
+   what belongs here.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- reset --- */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+* {
+	margin: 0;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	scroll-behavior: smooth;
+}
+
+body {
+	min-height: 100svh;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+}
+
+/* Media never overflows its column; the frame would be clipped otherwise. */
+img,
+picture,
+video,
+canvas,
+svg {
+	display: block;
+	max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+}
+
+/* --------------------------------------------------- colour & the frame --- */
+body {
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--font-prose);
+	font-size: var(--fs-prose);
+	font-weight: 400;
+	font-optical-sizing: auto;
+	line-height: var(--lh-prose);
+	overflow-wrap: break-word;
+	/* No `hyphens: auto` here. It is a display-type tool — a 60px uppercase
+	   heading must not blow out the frame — and applied to running prose it
+	   breaks ordinary words in the wrong places, which reads as a fault rather
+	   than as craft. The headings below turn it on where it belongs. */
+}
+
+/* Move 1 — The Room Frame.
+   A fixed overlay rather than a real border on <body>: a border would box in
+   every position: fixed child and leave scroll artefacts. Overlaying lets a
+   full-bleed hero photograph run *under* the frame, so the image fills the
+   window and the frame reads as the casing. pointer-events: none keeps it out
+   of the way; z-index 200 sits above content but below the mobile nav (300). */
+body::after {
+	content: '';
+	position: fixed;
+	inset: 0;
+	border: var(--frame-w) solid var(--frame);
+	pointer-events: none;
+	z-index: 200;
+}
+
+/* The frame is 48px of warm wall. It gets thinner as the room gets smaller. */
+@media (max-width: 1024px) {
+	:root {
+		--frame-w: 36px;
+	}
+}
+
+@media (max-width: 640px) {
+	:root {
+		--frame-w: 20px;
+	}
+}
+
+/* ------------------------------------------------------------ typography --- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-display);
+	font-weight: 500;
+	line-height: var(--lh-heading);
+	text-wrap: balance;
+	/* A 60px uppercase heading must never blow out the frame. */
+	overflow-wrap: break-word;
+	hyphens: auto;
+}
+
+p,
+li {
+	text-wrap: pretty;
+}
+
+strong,
+b {
+	font-weight: 600;
+}
+
+small {
+	font-size: var(--fs-small);
+}
+
+hr {
+	border: 0;
+}
+
+/* ------------------------------------------------------------------ links ---
+   The one micro-motion that makes the site feel alive: the underline lifts
+   from 30% to 15% of the ink over 150ms. Colour never changes — the line does. */
+a {
+	color: var(--ink);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: color-mix(in srgb, var(--ink) 30%, transparent);
+	text-underline-offset: 0.18em;
+	transition: text-decoration-color var(--t-micro) var(--ease-out);
+}
+
+a:hover {
+	text-decoration-color: color-mix(in srgb, var(--ink) 15%, transparent);
+}
+
+/* ------------------------------------------------------------------ hidden ---
+   `hidden` has to beat a component's own `display`. A UA rule for the
+   attribute loses to any author declaration, so a grid row or a flex panel
+   marked hidden would stay on screen — which is exactly the kind of bug a
+   filter bar hides until someone filters. One guard, here, so no component
+   has to remember it. */
+[hidden] {
+	display: none !important;
+}
+
+/* ----------------------------------------------------------------- states --- */
+::selection {
+	background: var(--ember-wash);
+	color: var(--ink);
+}
+
+:focus-visible {
+	outline: 2px solid var(--ember);
+	outline-offset: 3px;
+}
+
+/* A quiet, warm scrollbar. Firefox takes the shorthand; WebKit gets a thumb
+   that matches, and both degrade to the platform default if unsupported. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--rule) transparent;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--rule);
+	border: 3px solid var(--paper);
+	border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+/* ----------------------------------------------------------------- motion ---
+   Everything above collapses. Only opacity, transform and colour ever animate
+   (see §9) — nothing that triggers layout. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* ------------------------------------------------------- view transitions ---
+   §9's "View transition | crossfade, no slide | 300ms ease-out", made
+   literal. ClientRouter (in BaseLayout) hands each navigation to the browser
+   as a view transition, and this is the whole of what the site says about
+   it: the old room fades out while the new one fades in, both over --t-base,
+   both on --ease-out, in place.
+
+   Three decisions, each for a reason:
+
+   1. **Opacity only, and no mix-blend-mode.** The UA default crossfades on
+      `plus-lighter`, which is right for two dark surfaces and wrong for two
+      opaque oat-coloured ones — additive light over #f2ede4 washes to
+      white in the middle of the fade. Plain opacity over an opaque page
+      blends one room into the next.
+
+   2. **Nothing is named, so nothing is paired.** `view-transition-name` on
+      the wordmark or a card cover would have the browser morph one element
+      into the other — a position and size interpolation, which is a slide by
+      another name. The room frame and the grain are deliberately left inside
+      `root`: they are identical on both pages, so crossfading them is
+      invisible, and pinning them would need names that buy nothing.
+
+   3. **Reduced motion is handled here, not by the block above.** That block
+      reaches every element in the document, and the `::view-transition-*`
+      pseudo-elements live in a separate tree it cannot see. Without this,
+      `animation: none` never lands and a reader who asked for stillness gets
+      300ms of fade anyway. `transition-duration: 0.01ms` would not help
+      either: the snapshot is removed when the animation ends, so the page
+      has to be allowed to *end*. Skipping the transition is not a shorter one.
+*/
+@keyframes vt-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+::view-transition-old(root) {
+	animation: vt-fade-out var(--t-base) var(--ease-out) both;
+	/* The UA stylesheet blends the two snapshots additively, which is right for
+	   two dark surfaces and washes #f2ede4 towards white halfway through the
+	   fade. Stated on both, because it is a property of the pair and one of them
+	   left additive would still lighten the other. */
+	mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+	animation: vt-fade-in var(--t-base) var(--ease-out) both;
+	mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+}
+
+/* The one thing the crossfade has to switch off: smooth scrolling. */
+html[data-astro-transition] {
+	/* The router restores a remembered scroll position itself, with scrollTo(),
+	   and `scroll-behavior: smooth` in the reset above turns that into an
+	   animation. The reader presses Back, the page crossfades in at the top, and
+	   then watches it glide down to where they were — the transition finishing
+	   into a second and slower move that it was supposed to have replaced.
+
+	   `data-astro-transition` is on <html> for exactly the length of a
+	   navigation, and it is set before the router scrolls, so this covers the
+	   restore and nothing else. In-page anchor jumps are untouched: those are
+	   not navigations, and gliding down to a heading is the point of them. */
+	scroll-behavior: auto;
+}

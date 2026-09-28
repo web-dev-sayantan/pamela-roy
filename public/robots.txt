@@ -1,0 +1,22 @@
+# robots.txt
+#
+# A quiet room, indexed. Everything here is meant to be found: it is a writer's
+# public work, and a search result is the only version of it most people will
+# ever arrive at. Nothing is walled off.
+#
+# Written by hand rather than generated, because it has exactly two lines of
+# opinion in it and a generator would have to be configured to have them. The
+# Sitemap line is the only thing that has to change if the domain does, and that
+# one value is checked against astro.config in scripts/check-seo.ts — a sitemap
+# advertised at the wrong origin is worse than no sitemap line at all.
+
+User-agent: *
+Allow: /
+
+# The social cards and the feed are not pages. There is nothing to index in a
+# PNG, and a feed is not a document. Disallowing them keeps them out of search
+# results without blocking the links to them, which is what a crawler needs in
+# order to follow the <link rel="alternate"> and find the RSS URL.
+Disallow: /og/
+
+Sitemap: https://pamelaroy.com/sitemap-index.xml

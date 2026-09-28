@@ -1,0 +1,296 @@
+---
+/**
+ * ThemeToggle — the lamp switch.
+ *
+ * A room with a lamp in it can be dimmed, and this is the one control on the
+ * site that changes how the whole thing looks. It cycles three states rather
+ * than two, because the third is the one a reader starts in:
+ *
+ *   auto  — follow the system. The default, and reachable again after a tap.
+ *   day   — the room stays lit whatever the system says.
+ *   night — the room stays dim whatever the system says.
+ *
+ * A two-state day/night switch is a trap on a site that otherwise follows the
+ * OS: the first tap silently discards the reader's system preference and
+ * there is no gesture that gives it back. Here, cycling returns to `auto` on
+ * the third press, so the site is always exactly as opinionated as its reader
+ * asked it to be.
+ *
+ * The state is written to `localStorage.theme`, which the no-flash script in
+ * BaseHead already reads before first paint — so a reload costs no flash, and
+ * this component never has to run to get the room right.
+ *
+ * Without JavaScript the control is removed by CSS rather than left inert. A
+ * button that cannot do anything is worse than no button: it is a focus stop
+ * that lies. The no-JS page simply follows the system, which is the correct
+ * default and the one the no-flash script's `auto` branch already picks.
+ */
+---
+
+<button class="lamp" type="button" data-lamp hidden>
+	<svg
+		class="lamp__glyph"
+		viewBox="0 0 24 24"
+		width="16"
+		height="16"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="1.5"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+		focusable="false"
+	>
+		<!-- the shade, a stem, and a foot. No bulb: the glow is CSS, so the
+		     lamp is lit by the room's own palette rather than by a second
+		     colour nobody else on the site uses. -->
+		<path d="M5.2 10h13.6l-2.4-5.2H7.6L5.2 10Z" />
+		<path d="M12 10v7.4" />
+		<path d="M8.6 19.9h6.8" />
+		<path d="M12 2.4v2.4" />
+	</svg>
+
+	<span class="lamp__label" data-lamp-label>Auto</span>
+</button>
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+	/**
+	 * The three states, in the order the button cycles through them. Each entry
+	 * knows what it *is* and what the press after it *does*, because a switch
+	 * labelled only with its current state leaves a screen-reader user to guess
+	 * what activating it will cause — and the whole point of a three-state
+	 * control is that pressing it does something other than the obvious.
+	 */
+	const STATES = [
+		{ value: 'auto', label: 'Auto', say: 'following the system. Switch to day reading.' },
+		{ value: 'day', label: 'Day', say: 'always lit. Switch to night reading.' },
+		{ value: 'night', label: 'Night', say: 'always dim. Switch to following the system.' },
+	] as const;
+
+	type State = (typeof STATES)[number];
+
+	const systemTheme = (): 'day' | 'night' =>
+		matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day';
+
+	/**
+	 * What the toggle is currently set to, which is not always what the room is
+	 * showing: `auto` resolves to the system preference at paint time, so the
+	 * control has to ask the same question rather than read `data-theme`.
+	 */
+	const current = (): State => {
+		const stored = document.documentElement.dataset.themeChoice;
+		const found = STATES.find((s) => s.value === stored);
+		return found ?? STATES[0];
+	};
+
+	const read = (): State => {
+		try {
+			const stored = localStorage.getItem('theme');
+			return STATES.find((s) => s.value === stored) ?? STATES[0];
+		} catch {
+			return STATES[0];
+		}
+	};
+
+	const write = (state: State) => {
+		try {
+			localStorage.setItem('theme', state.value);
+		} catch {
+			/* Storage blocked. The room still changes for this page view; it just
+			   will not remember. Better than a control that does nothing. */
+		}
+	};
+
+	const render = (button: HTMLButtonElement, state: State) => {
+		const label = button.querySelector<HTMLElement>('[data-lamp-label]');
+		if (label) label.textContent = state.label;
+
+		/*
+		 * The accessible name is the state *and* the consequence of pressing,
+		 * so it is not derivable from the visible label alone. `title` is set
+		 * too, for the same reason: the visible text is one word, which on its
+		 * own is ambiguous between "Auto" the choice and "Auto" the resolved
+		 * appearance.
+		 */
+		const name = `Lamp: ${state.say}`;
+		button.setAttribute('aria-label', name);
+		button.title = name;
+
+		// Not aria-pressed: this is not a toggle that is on or off, it is a
+		// three-way choice. The state is in the name.
+		button.dataset.state = state.value;
+	};
+
+	const apply = (state: State) => {
+		const root = document.documentElement;
+		root.dataset.theme = state.value === 'auto' ? systemTheme() : state.value;
+		root.dataset.themeChoice = state.value;
+	};
+
+	/*
+	 * The button is per-page: the markup ships `hidden` on every page, and a
+	 * navigation brings a new button that this script is not re-run for. So it is
+	 * wired through perPage, which is also why the click handler reads `current()`
+	 * rather than a captured state — the room is the truth, not this closure.
+	 */
+	perPage(() => {
+		for (const button of document.querySelectorAll<HTMLButtonElement>('[data-lamp]')) {
+			// The markup ships `hidden` so a reader without JavaScript never sees a
+			// dead control. Revealing it is the last thing this does, so the button
+			// cannot appear before it can work.
+			button.hidden = false;
+
+			render(button, read());
+
+			button.addEventListener('click', () => {
+				const next = STATES[(STATES.indexOf(current()) + 1) % STATES.length];
+				write(next);
+				apply(next);
+				render(button, next);
+			});
+		}
+	});
+
+	/*
+	 * The control's label has to keep telling the truth when the system flips
+	 * underneath it, which is the one case where `auto` changes meaning without
+	 * a press. "Auto" stays the label — that is the choice, not the appearance —
+	 * so this only has to run when the reader is in `auto` and the OS moved.
+	 *
+	 * Registered once, out here, rather than per page: the lamp it re-renders is
+	 * whichever one is on screen now, and the query below finds it.
+	 */
+	matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+		if (read().value !== 'auto') return;
+		apply(STATES[0]);
+		for (const button of document.querySelectorAll<HTMLButtonElement>('[data-lamp]')) {
+			render(button, STATES[0]);
+		}
+	});
+</script>
+
+<style>
+	/*
+	 * Hidden until the script has run and taken the `hidden` attribute off. The
+	 * attribute is the mechanism, not a belt-and-braces `display: none`, so a
+	 * button that fails to initialise stays hidden rather than sitting there
+	 * inert.
+	 */
+	.lamp {
+		display: none;
+	}
+
+	/*
+	 * `:global(.js)` is load-bearing, not decoration. Astro scopes a
+	 * component's CSS by adding a `data-astro-cid-*` attribute to the last
+	 * element of every selector — including `.js`, because the compiler cannot
+	 * know that class belongs to <html>, which this component does not render.
+	 * Written as `.js .lamp`, the compiled rule is
+	 * `.js[data-astro-cid-x] .lamp[data-astro-cid-x]`, and since <html> is
+	 * never given a component's scope attribute, the rule can never match and
+	 * the lamp stays at `display: none` for good.
+	 *
+	 * The gate in scripts/check-lamp.ts found this: the control had an
+	 * accessible name and a working click handler, and was invisible.
+	 *
+	 * `hidden` in the markup is the real mechanism — this rule only chooses how
+	 * a revealed button looks, so a script that fails leaves it hidden.
+	 */
+	:global(.js) .lamp:not([hidden]) {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-1);
+		/* The same voice as the MENU button beside it, so the two read as one
+		   pair of controls rather than a toggle that arrived from elsewhere. */
+		padding-block: 0.5em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		line-height: var(--lh-ui);
+		text-transform: uppercase;
+		color: var(--ink-soft);
+		transition: color var(--t-micro) var(--ease-out);
+	}
+
+	:global(.js) .lamp:not([hidden]):hover {
+		color: var(--ink);
+	}
+
+	.lamp__glyph {
+		/* Positioned so the glow behind it can be centred on the shade. */
+		position: relative;
+		flex: none;
+	}
+
+	/*
+	 * The lamp is lit when the room is dark, and only then. Keyed off the
+	 * resolved theme rather than the chosen state, so it reads correctly in all
+	 * three: a reader who chose "night" on a system set to day sees a lit lamp,
+	 * and a reader in "auto" sees it light up at dusk on its own.
+	 *
+	 * Opacity and colour only — §9 allows nothing that triggers layout, and a
+	 * `filter` or `box-shadow` change on a header control would repaint the
+	 * sticky bar on every state change.
+	 */
+	.lamp__glyph::before {
+		content: '';
+		position: absolute;
+		inset: -6px;
+		border-radius: 50%;
+		background: radial-gradient(circle, var(--hearth) 0%, transparent 70%);
+		opacity: 0;
+		transition: opacity var(--t-base) var(--ease-out);
+	}
+
+	:root[data-theme='night'] .lamp__glyph::before {
+		opacity: 1;
+	}
+
+	/* The label is the state, so it is the one part that must not be quiet. */
+	.lamp__label {
+		color: var(--ink);
+	}
+
+	/*
+	 * On the narrowest stops the word goes and the lamp is the whole control,
+	 * which is how a physical lamp switch behaves. The accessible name is
+	 * unaffected — it is set in the script, not derived from what is on screen.
+	 */
+	@media (max-width: 420px) {
+		.lamp__label {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			padding: 0;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+	}
+</style>

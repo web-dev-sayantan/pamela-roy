@@ -1,0 +1,69 @@
+---
+/**
+ * PullQuote — a line worth stopping on, set apart from the column.
+ *
+ * Newsreader italic with a 2px ember rule down its left edge: the same device
+ * prose.css uses for a blockquote, so a pull quote lifted out of the body and
+ * one written as `>` in Markdown look like the same room.
+ */
+interface Props {
+	/** Attribution line. Omit for a quote that is the author's own. */
+	cite?: string;
+}
+
+const { cite } = Astro.props;
+---
+
+<figure class="pull-quote">
+	<blockquote><slot /></blockquote>
+	{cite && <figcaption class="pull-quote__cite">{cite}</figcaption>}
+</figure>
+
+<style>
+	.pull-quote {
+		/* Kept on the body measure, not outdented: a pull quote is set at the
+		   same size as the prose it is drawn from, and pushing it wider is a
+		   different move. The air above and below and the ember rule are what
+		   mark it as held apart. */
+		margin-block: var(--sp-7) var(--sp-6);
+	}
+
+	/* Opened by a pull quote, the essay has nothing between it and the title
+	   block, which has already closed with its own space. Paying the full air
+	   again opened a band of nothing above the first words. */
+	.pull-quote:first-child {
+		margin-block-start: 0;
+	}
+
+	.pull-quote blockquote {
+		margin: 0;
+		padding-left: var(--sp-4);
+		border-left: 2px solid var(--ember);
+		font-family: var(--font-prose);
+		font-size: 1.35rem;
+		font-style: italic;
+		line-height: 1.45;
+		color: var(--ink);
+		text-wrap: pretty;
+	}
+
+	.pull-quote :global(p) {
+		margin-block: 0 0.6em;
+	}
+
+	.pull-quote :global(p:last-child) {
+		margin-block-end: 0;
+	}
+
+	/* The attribution is a caption, not prose: the small tracked voice. */
+	.pull-quote__cite {
+		margin-block-start: var(--sp-3);
+		margin-inline-start: calc(var(--sp-4) + 2px);
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink-muted);
+	}
+</style>

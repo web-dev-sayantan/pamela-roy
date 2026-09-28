@@ -1,0 +1,92 @@
+---
+/**
+ * A topic archive — one page per topic, all six pre-generated.
+ *
+ * The same two indexes as the library, minus the filter: on a topic page the
+ * filter would only have one thing left to say. The `Write in this topic`
+ * heading doubles as the empty state if a topic ever has nothing in it, which
+ * is the honest sentence for that case.
+ */
+import type { GetStaticPaths } from 'astro';
+
+import PageLayout from '../../layouts/PageLayout.astro';
+import WritingGrid from '../../components/WritingGrid.astro';
+import Catalogue from '../../components/Catalogue.astro';
+import Empty from '../../components/Empty.astro';
+
+import { TOPICS, type Topic } from '../../lib/topics';
+import { writingsByTopic } from '../../lib/writings';
+
+export const getStaticPaths = (async () =>
+	TOPICS.map((topic) => ({
+		params: { topic: topic.slug },
+		props: { topic },
+	}))) satisfies GetStaticPaths;
+
+const { topic } = Astro.props;
+const writings = await writingsByTopic(topic.slug as Topic);
+---
+
+<PageLayout
+	title={topic.label}
+	eyebrow="Topic"
+	description={topic.description}
+	trail={[{ name: topic.label, path: `/topics/${topic.slug}` }]}
+>
+	<section class="section">
+		<div class="shell">
+			{
+				writings.length > 0 ? (
+					<>
+						<div class="section__head" data-reveal>
+							{/* The count is a fact, so it belongs in the micro-label.
+							    The heading is the thought that makes you want to look. */}
+							<p class="label">
+								{writings.length === 0
+									? 'Nothing yet'
+									: `${writings.length} ${writings.length === 1 ? 'piece' : 'pieces'}`}
+							</p>
+							<h2 class="section__heading">What sits on this shelf</h2>
+						</div>
+
+						<WritingGrid items={writings} more="Read on" />
+					</>
+				) : (
+					/* A topic with nothing in it is a real state — all six are
+					   generated whether or not anything has been filed — and it
+					   gets the same treatment as every other absence on the site
+					   rather than a section heading standing over a void. */
+					<Empty label="This shelf">
+						Nothing has been filed under {topic.label.toLowerCase()} yet. The
+						other five shelves are worth a look in the meantime.
+					</Empty>
+				)
+			}
+		</div>
+	</section>
+
+	{
+		writings.length > 0 && (
+			<section class="section">
+				<div class="shell">
+					<hr class="rule" />
+
+					<div class="section__head" data-reveal style="--i: 1">
+						<p class="label">The card catalogue</p>
+						<h2 class="section__heading">This topic, in order</h2>
+					</div>
+
+					<Catalogue entries={writings} />
+				</div>
+			</section>
+		)
+	}
+
+	<section class="section">
+		<div class="shell">
+			<p class="section__link">
+				<a href="/library">Back to the library</a>
+			</p>
+		</div>
+	</section>
+</PageLayout>

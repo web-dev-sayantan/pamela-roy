@@ -1,0 +1,89 @@
+/* =============================================================================
+   fonts.css — the three type families, latin subset only.
+
+   `@fontsource-variable`'s `standard.css` entry points ship every subset the
+   family covers: fraunces 3 faces, newsreader 3, inter 7. That is 19
+   `@font-face` blocks and 19 woff2 files for a site whose content is English,
+   including Cyrillic, Greek and Vietnamese ranges that will never match a
+   glyph. The bytes are downloaded lazily by the browser and so never cost
+   bandwidth — but they do sit in `dist/`, and they do mean a reader on a
+   metered connection who lands on a cached-miss page is one unlucky range
+   away from a Greek subset.
+
+   So the faces are declared here instead, one per family and style, each
+   pointing at the package's own `latin` woff2. Nothing is copied or patched:
+   the files are the ones fontsource ships, resolved out of `node_modules` by
+   Vite and fingerprinted like any other asset.
+
+   Why not `@fontsource-variable/<family>/latin.css`? Because the variable
+   packages have no such entry point. Their `exports` map is keyed on font
+   *axis* (`wght`, `opsz`, `standard`, `full`), and the subsets live as
+   separate `unicode-range` blocks inside each of those files. Declaring the
+   faces is the only way to take one subset.
+
+   The `unicode-range` values are copied verbatim from the corresponding
+   `latin` block in each package's CSS, so the ranges cannot drift from the
+   files they describe. `check:fonts` asserts the count, which is what stops
+   somebody reintroducing a full-subset import later.
+
+   `font-optical-sizing: auto` in base.css needs the `opsz` axis, which the
+   `standard` files carry — that is why these are the `standard` woff2s and
+   not the `wght` ones.
+   ========================================================================== */
+
+/* --- Fraunces — display: page titles, the manifesto, pull quotes --------- */
+
+@font-face {
+	font-family: 'Fraunces Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/fraunces/files/fraunces-latin-standard-normal.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Fraunces Variable';
+	font-style: italic;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/fraunces/files/fraunces-latin-standard-italic.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Newsreader — prose: everything a reader actually reads -------------- */
+
+@font-face {
+	font-family: 'Newsreader Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 200 800;
+	src: url('@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Newsreader Variable';
+	font-style: italic;
+	font-display: swap;
+	font-weight: 200 800;
+	src: url('@fontsource-variable/newsreader/files/newsreader-latin-standard-italic.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Inter — UI: labels, nav, buttons, meta ------------------------------ */
+
+/*
+   Inter ships the `opsz` axis too, and the UI voice does not use it — labels
+   are 11px and setting an optical size there buys nothing. The `wght` file is
+   therefore the smaller of the two, and it is the one the bare package import
+   was already loading for this family.
+*/
+@font-face {
+	font-family: 'Inter Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

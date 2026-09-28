@@ -1,0 +1,22 @@
+{
+	"/": {
+		"lcp": 60,
+		"cls": 0
+	},
+	"/library": {
+		"lcp": 48,
+		"cls": 0
+	},
+	"/library/2026/the-middle-of-the-book": {
+		"lcp": 60,
+		"cls": 0
+	},
+	"/services/ghostwriting": {
+		"lcp": 48,
+		"cls": 0
+	},
+	"/contact": {
+		"lcp": 48,
+		"cls": 0
+	}
+}

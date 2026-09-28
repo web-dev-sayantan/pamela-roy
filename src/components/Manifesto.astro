@@ -1,0 +1,247 @@
+---
+/**
+ * Manifesto — Move 4, the hero statement, and the only moment on the site
+ * that is allowed to be loud.
+ *
+ * Two things carry the design here. The first is the frame of reference: a
+ * room, a lamp, a path home. The second is the italic line, which drops out of
+ * the uppercase. Uppercase set at this size is a shout, and one line in a
+ * different voice is what keeps the shout from becoming a wall.
+ *
+ * On a narrow screen the three designed breaks are released and the sentence
+ * finds its own, because a 60px uppercase line that wraps at an arbitrary
+ * place reads as a mistake where a balanced paragraph reads as type.
+ *
+ * An optional `cover` is the seam where a photograph goes when there is
+ * photography worth having. Until then the hero is typographic on purpose.
+ */
+import { Picture } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+	/** Full-bleed photograph behind the type, at low opacity under a scrim. */
+	cover?: ImageMetadata;
+	coverAlt?: string;
+}
+
+const { cover, coverAlt = '' } = Astro.props;
+---
+
+<section class="hero">
+	<div class="hearth" aria-hidden="true"></div>
+
+	{
+		cover && (
+			<div class="hero__cover" aria-hidden={coverAlt ? undefined : 'true'}>
+				<Picture
+					src={cover}
+					alt={coverAlt}
+					formats={['avif', 'webp']}
+					loading="eager"
+					fetchpriority="high"
+					widths={[640, 1280, 1920]}
+					sizes="100vw"
+				/>
+			</div>
+		)
+	}
+
+	<div class="hero__inner">
+		<p class="label">A library of writing</p>
+
+		<h1 class="manifesto">
+			<span class="manifesto__line">A quiet room full of</span>
+			<span class="manifesto__line manifesto__line--aside"><em>half-finished thoughts</em></span>
+			<span class="manifesto__line">and the long way home.</span>
+		</h1>
+
+		<p class="hero__note">
+			I am Pamela Roy. I write essays, interviews, and other people's books,
+			and this is where I keep them.
+		</p>
+	</div>
+
+	<div class="hero__whisper" aria-hidden="true">
+		<span>Scroll</span>
+	</div>
+</section>
+
+<style>
+	.hero {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		/* Full-bleed on a desktop, shorter on a phone, so the first words of the
+		   page are never pushed below the fold. */
+		min-height: min(88svh, 52rem);
+		padding-block: var(--sp-7) var(--sp-8);
+	}
+
+	@media (max-width: 767px) {
+		.hero {
+			min-height: 70svh;
+			padding-block: var(--sp-6) var(--sp-7);
+		}
+	}
+
+	/* The manifesto is wider than the reading measure, so the hero opts out of
+	   .shell and sets its own inset: the frame clearance plus a little air.
+	   Capped so the hero stops widening on very large displays. */
+	.hero__inner {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-5);
+		width: 100%;
+		max-width: 92rem;
+		margin-inline: auto;
+		padding-inline: calc(var(--frame-w) + var(--sp-4));
+	}
+
+	/* The photograph runs *under* the room frame, which is the whole trick:
+	   the image fills the window and the frame reads as the casing. */
+	.hero__cover {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		overflow: hidden;
+	}
+
+	.hero__cover :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		/* The site's one photography filter — see --filter-cover in
+		   tokens.css. A hero shot is still a photograph from the same decade
+		   as the covers, and it gets the same treatment they do. */
+		filter: var(--filter-cover);
+	}
+
+	/* A paper scrim over the photograph, so the type keeps its contrast
+	   whatever is behind it. Light and dark rooms both get enough ink. */
+	.hero__cover::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--paper) 82%, transparent) 0%,
+			color-mix(in srgb, var(--paper) 88%, transparent) 45%,
+			var(--paper) 100%
+		);
+	}
+
+	/* Move 4 — the manifesto. Tight leading, tight tracking, uppercase, and
+	   three lines that are blocks in their own right rather than runs of
+	   text separated by <br>.
+
+	   That distinction is the whole trick. With <br>, a narrow screen collapses
+	   the three into one paragraph and the italic phrase ends up sharing a line
+	   with roman type, which destroys the single breath the design is built
+	   around. As blocks, each line wraps internally and never mixes with its
+	   neighbours, so the composition survives down to a 320px phone.
+
+	   The size is set against the hero's own width rather than the viewport,
+	   because the longest of the three lines is what has to fit. Deliberately
+	   not `white-space: nowrap`: if a line ever does outgrow the room it wraps,
+	   rather than pushing through the frame. */
+	.manifesto {
+		font-family: var(--font-display);
+		font-optical-sizing: none;
+		font-variation-settings: 'opsz' 144;
+		font-weight: 500;
+		font-size: var(--fs-manifesto);
+		line-height: var(--lh-display);
+		letter-spacing: var(--track-display);
+		text-transform: uppercase;
+	}
+
+	.manifesto__line {
+		display: block;
+	}
+
+	/* The one breath in the shout. Lowercase, italic, and never mixed into a
+	   line with anything else. */
+	.manifesto__line--aside {
+		text-transform: none;
+		font-style: italic;
+	}
+
+	/* Below the tablet stop each line is too long to sit on one line, so it is
+	   set as its own short balanced paragraph. A fixed rem measure, not a ch
+	   one, so tablets get a sane line length while a narrow phone simply uses
+	   everything it has. The size step itself lives with the rest of the type
+	   scale in tokens.css. */
+	@media (max-width: 900px) {
+		.manifesto {
+			max-width: 28rem;
+		}
+
+		.manifesto__line {
+			text-wrap: balance;
+		}
+	}
+
+	.hero__note {
+		max-width: 34ch;
+		color: var(--ink-soft);
+	}
+
+	/* The Scroll Whisper: a tracked label with a hairline running down out of
+	   it, on a slow loop. Purely atmospheric, so it is hidden from assistive
+	   tech rather than announced as the word "Scroll". */
+	.hero__whisper {
+		position: absolute;
+		bottom: var(--sp-5);
+		left: 50%;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--sp-2);
+		transform: translateX(-50%);
+	}
+
+	.hero__whisper span {
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink-muted);
+	}
+
+	.hero__whisper::after {
+		content: '';
+		width: 1px;
+		height: 3rem;
+		background: linear-gradient(to bottom, var(--rule) 0%, transparent 100%);
+		animation: whisper 2.4s var(--ease-soft) infinite;
+		transform-origin: top;
+	}
+
+	@keyframes whisper {
+		0% {
+			transform: scaleY(0);
+			opacity: 0;
+		}
+		30% {
+			opacity: 1;
+		}
+		100% {
+			transform: scaleY(1);
+			opacity: 0;
+		}
+	}
+
+	/* On a phone the hero is already full; the whisper would only be furniture
+	   pushed against the frame. */
+	@media (max-width: 640px) {
+		.hero__whisper {
+			display: none;
+		}
+	}
+</style>

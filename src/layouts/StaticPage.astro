@@ -1,0 +1,97 @@
+---
+/**
+ * StaticPage — the layout for every page in the `pages` collection.
+ *
+ * Four routes (/about, /colophon, /contact, /newsletter) are thin wrappers over
+ * a Markdown file, and this is what they all share: the page title block from
+ * frontmatter, the body through the prose system, and a contents in the margin
+ * for the pages long enough to want one.
+ *
+ * A route's own job — a portrait, a signup form, a list of past issues — goes
+ * in a slot rather than in a copy of this file. That is the whole discipline of
+ * the collection: the chrome is decided once here, and a new page is a text
+ * file plus the few lines that are genuinely its own.
+ */
+import { render } from 'astro:content';
+
+import PageLayout from './PageLayout.astro';
+import Measured from './Measured.astro';
+import Prose from '../components/Prose.astro';
+import PullQuote from '../components/PullQuote.astro';
+import Toc from '../components/Toc.astro';
+
+import type { StaticPage } from '../lib/pages';
+
+interface Props {
+	page: StaticPage;
+}
+
+const { page } = Astro.props;
+
+/* One call serves the body and the contents, which therefore cannot disagree
+   about what the page contains. */
+const { Content, headings } = await render(page);
+---
+
+<PageLayout
+	eyebrow={page.data.eyebrow}
+	title={page.data.title}
+	/* The one field doing two jobs: the sentence under the title a reader sees
+	   and the sentence a crawler reads. They are the same sentence because
+	   there is only one of it. */
+	description={page.data.description}
+>
+	{/* Structured data that belongs to one particular page rather than to the
+	    layout — today just the Person on /about. Keyed on `page.id` in here
+	    instead, the layout would be holding a list of the routes that exist, and
+	    adding a fifth page would mean editing a file that is supposed to know
+	    nothing about any of them. The route puts its own facts in the slot. */}
+	<slot name="head" />
+
+	<section class="section section--flush">
+		<div class="shell">
+			<Measured aside={page.data.showToc}>
+				{page.data.showToc && (
+					<Fragment slot="aside">
+						<Toc headings={headings} />
+					</Fragment>
+				)}
+
+				{/* A portrait or a stand-in plate, above the words. A `lede`
+				    rather than something this layout decides, because only one
+				    of the four pages has a person in it. */}
+				<Fragment slot="lede">
+					<slot name="lede" />
+				</Fragment>
+
+				{/* Set from frontmatter and lifted above the body, so it reads
+				    as the page's thesis rather than as one more thing inside
+				    it — the same treatment a long essay gets. */}
+				{page.data.pullQuote && (
+					<PullQuote cite={page.data.pullQuoteCite}>{page.data.pullQuote}</PullQuote>
+				)}
+
+				<Prose>
+					<Content />
+				</Prose>
+			</Measured>
+
+			{/* Everything a route adds below the page's own words sits in here,
+			    so the air above it is decided once. Without it the first thing
+			    in the slot — a hairline, usually — landed flush against the
+			    last paragraph. */}
+			<div class="static-tail">
+				<slot name="after" />
+			</div>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.static-tail {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-5);
+		margin-block-start: var(--sp-7);
+	}
+</style>

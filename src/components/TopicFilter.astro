@@ -1,0 +1,367 @@
+---
+/**
+ * TopicFilter — Move 7's companion, the filter bar.
+ *
+ * A row of topic buttons with counts, plus a year select. Two rules govern the
+ * whole component:
+ *
+ *  1. **The full list is already in the HTML.** Filtering is an enhancement, so
+ *     a reader with no JavaScript sees every piece and can still reach all of
+ *     them. Nothing is fetched, and nothing is hidden in the markup.
+ *  2. **The state lives in the URL.** `?topic=craft&year=2026` is a shareable
+ *     link, survives a reload, and the back button walks the filters.
+ *
+ * Both filters combine: a topic narrows within a year, not instead of it.
+ * State is announced through `aria-pressed` on the buttons and a polite live
+ * region that reads out how many pieces the current filter leaves on the
+ * shelf — which is the one thing a filtered grid cannot say for itself.
+ */
+import Empty from './Empty.astro';
+import { TOPICS } from '../lib/topics';
+
+interface Props {
+	/** How many writings sit in each topic, for the button counts. */
+	counts: Record<string, number>;
+	/** The distinct years present, newest first. */
+	years: number[];
+	/** Total pieces, so the live region has something to count down from. */
+	total: number;
+	/** Id of the element the filter narrows. */
+	scope: string;
+}
+
+const { counts, years, total, scope } = Astro.props;
+---
+
+<div class="filter" data-filter data-scope={scope}>
+	<div class="filter__topics" role="group" aria-label="Filter by topic">
+		<button class="filter__button" type="button" data-filter-topic="" aria-pressed="true">
+			All
+			<span class="filter__count">{total}</span>
+		</button>
+
+		{
+			TOPICS.map((topic) => (
+				<button
+					class="filter__button"
+					type="button"
+					data-filter-topic={topic.slug}
+					aria-pressed="false"
+				>
+					{topic.label}
+					{counts[topic.slug] ? (
+						<span class="filter__count">{counts[topic.slug]}</span>
+					) : null}
+				</button>
+			))
+		}
+	</div>
+
+	<div class="filter__year">
+		<label class="label" for="filter-year">Year</label>
+		<select class="filter__select" id="filter-year" data-filter-year>
+			<option value="">All years</option>
+			{years.map((year) => <option value={String(year)}>{year}</option>)}
+		</select>
+	</div>
+
+	{/* Says what the filter just did, in a sentence rather than a number.
+	    `role="status"` is the polite live region; it is empty on arrival so it
+	    has nothing to announce until a reader asks for a filter. */}
+	<p class="filter__status" role="status" data-filter-status></p>
+
+	{/* Shown only when a combination leaves nothing on the shelf. Phase 7's
+	    empty-state rule, written now because a filter that can reach an empty
+	    shelf has to say something when it gets there. The message is Empty so
+	    it is set like every other absence on the site; the hook the script
+	    toggles is passed straight through. */}
+	<Empty data-filter-empty hidden>
+		Nothing on this shelf fits both of those. Take one of them back and it
+		fills again.
+	</Empty>
+</div>
+
+<script>
+	/**
+	 * Re-run everything below after a navigation, once per document: the router
+	 * replaces the document without re-running this script, so a handler bound
+	 * at load would be bound to markup that is gone — and a swap replaces
+	 * <body> outright, which is how this knows a new page has arrived.
+	 *
+	 * Written out in each component rather than imported: a shared module is a
+	 * file of its own, and one file of its own turns every component script
+	 * into a separate request. The site inlines all of its JavaScript, and
+	 * scripts/check-perf.ts is the gate that says so.
+	 */
+	const perPage = (init: () => void) => {
+		let wired: HTMLElement | null = null;
+
+		const run = () => {
+			const body = document.body;
+			if (!body || body === wired) return;
+			wired = body;
+			init();
+		};
+
+		run();
+		document.addEventListener('astro:page-load', run);
+	};
+
+	/**
+	 * One filter, wired per page. The state is a topic and a year; `apply` is
+	 * the only thing that touches the DOM, so init, clicks, changes and
+	 * popstate all go through the same path and cannot disagree.
+	 *
+	 * Two of those four are new since the router arrived. `astro:page-load`
+	 * means the buttons and the select are new elements on every navigation, so
+	 * they are re-bound per page; and `popstate` — the handler that used to be
+	 * unreachable in a multi-page site, because going back to a filtered URL
+	 * was a document load — now fires. So it is registered once, out here, and
+	 * calls whichever filter is on screen. On a page with no filter it is left
+	 * null and the listener does nothing.
+	 */
+	let onPopState: (() => void) | null = null;
+
+	addEventListener('popstate', () => onPopState?.());
+
+	perPage(() => {
+		onPopState = null;
+
+		const filter = document.querySelector<HTMLElement>('[data-filter]');
+		if (!filter) return;
+
+		const scope = document.getElementById(filter.dataset.scope ?? '');
+		if (!scope) return;
+
+		const topicButtons = [...filter.querySelectorAll<HTMLButtonElement>('[data-filter-topic]')];
+		const yearSelect = filter.querySelector<HTMLSelectElement>('[data-filter-year]');
+		const status = filter.querySelector<HTMLElement>('[data-filter-status]');
+		const empty = filter.querySelector<HTMLElement>('[data-filter-empty]');
+
+		const items = [...scope.querySelectorAll<HTMLElement>('[data-topic]')];
+		const groups = [...scope.querySelectorAll<HTMLElement>('[data-group], [data-year-group]')];
+
+		// "One piece" reads as a sentence; "3 pieces" is a number. Both are
+		// better than a bare numeral in a live region.
+		const describe = (count: number) =>
+			count === 0 ? 'No pieces' : count === 1 ? 'One piece' : `${count} pieces`;
+
+		let state = { topic: '', year: '' };
+
+		/**
+		 * A piece appears in the scope more than once — as a shelf card and
+		 * as a catalogue row — so counting rows would report double. The
+		 * href is the one thing both views of a piece agree on and it is
+		 * already in the markup, so the distinct hrefs are the distinct
+		 * pieces. That keeps the count honest without this script having to
+		 * know which of the two indexes is the primary one.
+		 */
+		const pieceCount = () =>
+			new Set(
+				items
+					.filter((item) => !item.hidden)
+					.map((item) => item.querySelector('a[href]')?.getAttribute('href') ?? ''),
+			).size;
+
+		const apply = (announce: boolean) => {
+			for (const item of items) {
+				const wrongTopic = !!state.topic && item.dataset.topic !== state.topic;
+				const wrongYear = !!state.year && item.dataset.year !== state.year;
+				item.hidden = wrongTopic || wrongYear;
+			}
+
+			// A month or a year left with nothing in it should not keep its
+			// heading and rule. Asked of its descendants rather than its
+			// children, because a year group's own heading is never hidden
+			// and would otherwise always count as content.
+			for (const group of groups) {
+				group.hidden = !group.querySelector('[data-topic]:not([hidden])');
+			}
+
+			for (const button of topicButtons) {
+				button.setAttribute('aria-pressed', String(button.dataset.filterTopic === state.topic));
+			}
+
+			if (yearSelect) yearSelect.value = state.year;
+
+			const shown = pieceCount();
+			if (empty) empty.hidden = shown > 0;
+
+			if (announce) {
+				const what = state.topic || state.year ? ' matching that' : ' in the library';
+				if (status) status.textContent = `${describe(shown)}${what}.`;
+			}
+		};
+
+		// The URL is the source of truth on arrival, so a shared link opens
+		// already filtered and the back button can walk the filters.
+		const read = () => {
+			const params = new URLSearchParams(location.search);
+
+			const topic = params.get('topic') ?? '';
+			const year = params.get('year') ?? '';
+
+			// Validated against the controls rather than trusted: a stale or
+			// hand-edited `?topic=` must not blank the shelf and leave no
+			// button pressed, which reads as a broken page rather than as a
+			// filter that found nothing.
+			state = {
+				topic: topicButtons.some((b) => b.dataset.filterTopic === topic) ? topic : '',
+				year: [...(yearSelect?.options ?? [])].some((o) => o.value === year) ? year : '',
+			};
+		};
+
+		const write = () => {
+			const url = new URL(location.href);
+			for (const key of ['topic', 'year'] as const) {
+				if (state[key]) url.searchParams.set(key, state[key]);
+				else url.searchParams.delete(key);
+			}
+			// replaceState, not pushState: stepping through filters should
+			// not bury the article you came from under a stack of history.
+			//
+			// The state object is passed through rather than nulled, because it
+			// is not ours. The router keeps the reader's place in its history
+			// and their scroll position in there, and a null state would leave
+			// it with a popstate it cannot act on — a back button that changes
+			// the address bar and leaves the page where it was.
+			history.replaceState(history.state, '', url);
+		};
+
+		for (const button of topicButtons) {
+			button.addEventListener('click', () => {
+				state.topic = button.dataset.filterTopic ?? '';
+				write();
+				apply(true);
+			});
+		}
+
+		yearSelect?.addEventListener('change', () => {
+			state.year = yearSelect.value;
+			write();
+			apply(true);
+		});
+
+		onPopState = () => {
+			read();
+			apply(true);
+		};
+
+		read();
+		// Silent on arrival: the list is already showing everything, so
+		// announcing a count a reader did not ask for is just noise.
+		apply(false);
+	});
+</script>
+
+<style>
+	.filter {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--sp-4);
+		/* No bottom margin: the shelf's own section padding is the gap, and
+		   adding one here opened a void between the controls and the cards
+		   they control. */
+	}
+
+	.filter__topics {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-2);
+	}
+
+	/* A topic is a quiet outline until it is pressed, then it fills with ink
+	   rather than ember: the accent belongs to the lamp, and the filter is
+	   furniture. The counts stay muted either way. */
+	.filter__button {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.45em;
+		padding: 0.6em 0.9em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink-soft);
+		background: transparent;
+		border: 1px solid var(--rule);
+		border-radius: 2px;
+		cursor: pointer;
+		transition:
+			color var(--t-micro) var(--ease-out),
+			background-color var(--t-micro) var(--ease-out),
+			border-color var(--t-micro) var(--ease-out);
+	}
+
+	.filter__button:hover {
+		color: var(--ink);
+		border-color: var(--ink-soft);
+	}
+
+	.filter__button[aria-pressed='true'] {
+		color: var(--paper);
+		background: var(--ink);
+		border-color: var(--ink);
+	}
+
+	.filter__count {
+		font-variant-numeric: tabular-nums;
+		opacity: 0.7;
+	}
+
+	.filter__year {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-2);
+	}
+
+	.filter__select {
+		/* The native control, dressed: no custom dropdown, no JavaScript
+		   popup, and it inherits the page's own paper and ink. */
+		padding: 0.6em 2em 0.6em 0.8em;
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink-soft);
+		background-color: var(--paper-raised);
+		border: 1px solid var(--rule);
+		border-radius: 2px;
+		cursor: pointer;
+		appearance: none;
+		background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+			linear-gradient(135deg, currentColor 50%, transparent 50%);
+		background-position:
+			calc(100% - 1.05em) 55%,
+			calc(100% - 0.75em) 55%;
+		background-size: 0.3em 0.3em;
+		background-repeat: no-repeat;
+		transition:
+			color var(--t-micro) var(--ease-out),
+			border-color var(--t-micro) var(--ease-out);
+	}
+
+	.filter__select:hover {
+		color: var(--ink);
+		border-color: var(--ink-soft);
+	}
+
+	/* Visible to a screen reader when it changes, invisible on the shelf. */
+	.filter__status {
+		flex-basis: 100%;
+		margin: 0;
+		font-size: var(--fs-small);
+		color: var(--ink-muted);
+	}
+
+	/* Empty brings its own type; all it needs from here is a line of its own.
+	   The filter is a flex row, so without this the message would sit beside
+	   the status line rather than under it. */
+	.filter :global(.empty) {
+		flex-basis: 100%;
+	}
+</style>

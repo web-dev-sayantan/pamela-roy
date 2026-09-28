@@ -1,0 +1,243 @@
+---
+/**
+ * BaseHead — everything in <head> that is about this page rather than about
+ * the room.
+ *
+ * The document is a quiet room, but a link pasted into Slack is a business
+ * card, and a card needs a name, a sentence and a picture. This component is
+ * the one place those are assembled, so a page cannot have a title and no
+ * description, or an og:image that points at a route which does not exist.
+ *
+ * Three decisions worth stating, because each of them was a way to get this
+ * wrong:
+ *
+ * 1. **The title template lives here, not at the call sites.** WritingLayout
+ *    used to append "· Pamela Roy" itself, which meant the home page — whose
+ *    title *is* the name — either doubled up or had to opt out by hand. The
+ *    rule is now one line: a title equal to the site name stands alone, and
+ *    everything else is suffixed.
+ *
+ * 2. **The description falls back to the tagline rather than going missing.**
+ *    A page with no description gets a thin, generic one from a search result,
+ *    which is worse than an honest short one from the site. Every page passes a
+ *    real sentence; this is the floor, not the plan.
+ *
+ * 3. **The theme script stays in here, ahead of the font preloads.** It is
+ *    inline, so it runs during head parsing and before first paint; moving it
+ *    into a bundle or below the stylesheets is how a night-mode reader gets
+ *    flashed the day room.
+ */
+import { SITE } from '../lib/site';
+
+/**
+ * The head's props, exported so BaseLayout can forward them without
+ * re-declaring the list. Three files keeping the same set of social fields in
+ * step by hand is exactly the duplication that this component exists to end.
+ */
+export interface HeadProps {
+	/** The page's own title. Suffixed with the site name unless it is the name. */
+	title: string;
+	/** One or two sentences. Doubles as the og: and twitter: description. */
+	description?: string;
+	/** `article` on a piece of writing, `website` everywhere else. */
+	type?: 'website' | 'article';
+	/** Root-relative path to the social card, e.g. `/og/default.png`. */
+	image?: string;
+	imageAlt?: string;
+	/** Article provenance. Rendered only when `type` is `article`. */
+	publishedTime?: Date;
+	modifiedTime?: Date;
+	section?: string;
+	/** Keeps a page out of the index. Used by the 404. */
+	noindex?: boolean;
+}
+
+const {
+	title,
+	description = SITE.tagline,
+	type = 'website',
+	image = '/og/default.png',
+	imageAlt,
+	publishedTime,
+	modifiedTime,
+	section,
+	noindex = false,
+} = Astro.props as HeadProps;
+
+/*
+ * The canonical address, built once and used three times: the <link>, the
+ * og:url and the JSON-LD. Three separately-computed URLs are three chances to
+ * disagree, and a canonical that disagrees with og:url is a bug nobody sees.
+ *
+ * `Astro.site` is astro.config's `site`, which reads SITE.url — the same origin
+ * the sitemap and the feed are built from. Falling back to SITE.url rather than
+ * to a relative URL is deliberate: a relative og:url is ignored by some
+ * crawlers, and there is no local case where an absolute one is wrong.
+ */
+const canonical = new URL(Astro.url.pathname, Astro.site ?? SITE.url).href;
+const imageUrl = new URL(image, Astro.site ?? SITE.url).href;
+
+/* %s · Pamela Roy, with one exception: the home page's title is the name, and
+   appending the name to the name is the sort of small thing that reads as a
+   mistake on every single visit. */
+const fullTitle = title === SITE.name ? title : `${title} · ${SITE.name}`;
+
+import frauncesUrl from '@fontsource-variable/fraunces/files/fraunces-latin-standard-normal.woff2?url';
+import newsreaderUrl from '@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2?url';
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+<meta name="color-scheme" content="light dark" />
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+{noindex && <meta name="robots" content="noindex, follow" />}
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" href="/favicon.ico" />
+
+{/* So a reader's reader finds the feed without having to guess the address.
+    The footer's RSS link resolves; this is what makes it discoverable to
+    software, which is the only thing that will ever use it. */}
+<link
+	rel="alternate"
+	type="application/rss+xml"
+	title={`${SITE.name} — all writing`}
+	href={new URL('/rss.xml', Astro.site ?? SITE.url).href}
+/>
+
+<link rel="preload" href={frauncesUrl} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={newsreaderUrl} as="font" type="font/woff2" crossorigin />
+
+{/*
+	Must run before any stylesheet, or a night-mode reader gets a flash of the
+	day room. localStorage can throw when storage is blocked, and that must
+	never take the page down with it.
+
+	`data-astro-rerun` is not decoration. A navigation replaces the document,
+	and part of replacing it is replacing <html>'s attributes — which is exactly
+	where this script keeps the room's state: the `js` class, `data-theme` and
+	`data-theme-choice`. Without the rerun, every navigation would swap the head
+	and arrive at a bare <html>: a night reader handed the day room halfway down
+	a link, and the lamp made invisible by the loss of `.js`.
+*/}
+<script is:inline data-astro-rerun>
+	(() => {
+		// Scroll reveals hide their targets up front, so the stylesheet only
+		// does that when it knows a script is running. Setting the class here —
+		// before first paint — is what keeps a reader without JavaScript from
+		// staring at an empty page.
+		document.documentElement.classList.add('js');
+
+		/*
+		 * Three states, not two. The stored value is 'day', 'night' or 'auto',
+		 * where 'auto' means "follow the system". A two-state switch could not
+		 * express the third, which is the state a reader is in before they touch
+		 * anything and would have no way back to.
+		 *
+		 * `auto` is stored explicitly rather than inferred from an absent key, so
+		 * that "I have chosen to follow the system" and "I have never chosen" are
+		 * the same thing to this script but distinguishable to the toggle, which
+		 * has to label the current state accurately.
+		 */
+		const systemTheme = () =>
+			matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day';
+
+		const read = () => {
+			try {
+				const stored = localStorage.getItem('theme');
+				return stored === 'day' || stored === 'night' || stored === 'auto'
+					? stored
+					: 'auto';
+			} catch {
+				/* storage blocked — the site still works, on the OS preference */
+				return 'auto';
+			}
+		};
+
+		const apply = () => {
+			const stored = read();
+			document.documentElement.dataset.theme = stored === 'auto' ? systemTheme() : stored;
+			// Read by the toggle's stylesheet to know which of the three it is on.
+			document.documentElement.dataset.themeChoice = stored;
+		};
+
+		apply();
+
+		/*
+		 * While the reader has not overridden anything, the room has to keep
+		 * following the system — a laptop that is unplugged at dusk should dim
+		 * without a reload. Once they have chosen, their choice is theirs and the
+		 * listener stops mattering; it stays attached because the cost is a
+		 * no-op and removing it would mean unwatching on every state change.
+		 *
+		 * Watched once per session, not once per run. This script re-runs on
+		 * every navigation, and each run is a fresh scope, so a flag in here
+		 * would not survive it — the <html> element does, and that is where the
+		 * flag lives. Ten pages of browsing should not leave ten media queries
+		 * watching for dusk.
+		 */
+		const root = /** @type {any} */ (document.documentElement);
+
+		if (!root.themeWatched) {
+			root.themeWatched = true;
+			matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+				if (read() === 'auto') apply();
+			});
+		}
+	})();
+</script>
+
+{/* ---------------------------------------------------------------- social ---
+	og: and twitter: are not two vocabularies for the same three facts, they
+	are one set of facts with different names, so both are written from the same
+	props and cannot drift. `summary_large_image` because the card is 1200x630
+	and a reader on a phone is looking at a thumbnail, not a square. */}
+<meta property="og:type" content={type} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:locale" content="en_GB" />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta
+	property="og:image:alt"
+	content={imageAlt ?? `A card for ${title} on ${SITE.name}`}
+/>
+
+{
+	type === 'article' && publishedTime && (
+		<meta property="article:published_time" content={publishedTime.toISOString()} />
+	)
+}
+{
+	type === 'article' &&
+		modifiedTime && (
+			<meta property="article:modified_time" content={modifiedTime.toISOString()} />
+		)
+}
+{/*
+	article:author is the author's *page*, not their name. The value is a URL in
+	both the Open Graph and the schema.org reading of the property, and using the
+	URL is what lets a crawler tie this BlogPosting to the Person declared on
+	/about rather than to a string it has to match by hand.
+*/}
+{type === 'article' && (
+	<meta property="article:author" content={new URL('/about', Astro.site ?? SITE.url).href} />
+)}
+{type === 'article' && section && <meta property="article:section" content={section} />}
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+<meta
+	name="twitter:image:alt"
+	content={imageAlt ?? `A card for ${title} on ${SITE.name}`}
+/>
