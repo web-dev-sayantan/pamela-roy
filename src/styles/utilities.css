@@ -7,12 +7,15 @@
 /* ------------------------------------------------------------------ shell ---
    The frame is a fixed overlay, so content opts *in* to being held inside it
    by way of matching padding. This is the one container that guarantees no
-   element ever sits under the casing. */
+   element ever sits under the casing.
+
+   The padding is --gutter, not --frame-w: the casing is a picture of a casing
+   and the gutter is the air inside it. */
 .shell {
 	width: 100%;
-	max-width: calc(var(--measure-wide) + var(--frame-w) * 2);
+	max-width: calc(var(--measure-wide) + var(--gutter) * 2);
 	margin-inline: auto;
-	padding-inline: var(--frame-w);
+	padding-inline: var(--gutter);
 }
 
 /* ------------------------------------------------------------------ stack ---

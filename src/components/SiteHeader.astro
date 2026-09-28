@@ -208,15 +208,15 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 </script>
 
 <style>
-	/* The header sticks to the viewport top, but its first frame-width of
-	   height is empty padding: that band sits under the room frame, so the
-	   wordmark and nav always start inside the casing — both in flow at the
-	   top of the page and once stuck mid-scroll. */
+	/* The header sticks to the viewport top, but its first gutter of height is
+	   empty padding: that band sits under the room frame, so the wordmark and
+	   nav always start inside the casing — both in flow at the top of the page
+	   and once stuck mid-scroll. */
 	.site-header {
 		position: sticky;
 		top: 0;
 		z-index: 100;
-		padding-top: var(--frame-w);
+		padding-top: var(--gutter);
 		transition: background-color var(--t-base) var(--ease-out);
 	}
 
@@ -328,7 +328,7 @@ const isCurrent = (href: string) => isCurrentPath(here, href);
 		flex-direction: column;
 		gap: var(--sp-6);
 		min-height: 100%;
-		padding: calc(var(--frame-w) + var(--sp-5)) calc(var(--frame-w) + var(--sp-4));
+		padding: calc(var(--gutter) + var(--sp-4)) var(--gutter);
 	}
 
 	.menu-panel__close {

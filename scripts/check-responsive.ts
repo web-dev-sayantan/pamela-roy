@@ -52,12 +52,12 @@ const frameAt = async (width: number) => {
 };
 
 for (const [width, expected] of [
-	[360, 20],
-	[390, 20],
-	[640, 20],
-	[641, 36],
-	[768, 36],
-	[1024, 36],
+	[360, 12],
+	[390, 12],
+	[640, 12],
+	[641, 28],
+	[768, 28],
+	[1024, 28],
 	[1025, 48],
 	[1440, 48],
 	[1920, 48],
@@ -67,6 +67,58 @@ for (const [width, expected] of [
 		`the frame is ${expected}px at ${width}px wide`,
 		actual === expected,
 		`measured ${actual}px`,
+	);
+}
+
+/* --- 1b. the gutter is a separate, larger value --------------------------- */
+
+/*
+ * The frame and the gutter used to be one token, which meant content was padded
+ * by exactly the casing's own thickness and its left edge landed on the casing's
+ * inner edge. The frame reading correctly at every width is therefore not
+ * sufficient: this asserts the gutter is a real inset of its own, and that the
+ * air between the frame and the text is positive rather than zero.
+ */
+for (const [width, expectedGutter, expectedFrame] of [
+	[360, 32, 12],
+	[390, 32, 12],
+	[640, 32, 12],
+	[641, 48, 28],
+	[768, 48, 28],
+	[1024, 48, 28],
+	[1025, 80, 48],
+	[1440, 80, 48],
+	[1920, 80, 48],
+] as const) {
+	await cdp.viewport(width, 900);
+	await cdp.goto(`${server.url}/`, 500);
+
+	const m = await cdp.evaluate<{ gutter: number; frame: number; air: number }>(`(() => {
+		const root = getComputedStyle(document.documentElement);
+		const frame = parseFloat(getComputedStyle(document.body, '::after').borderTopWidth) || 0;
+		// Read the gutter off .shell's own padding rather than the token, so this
+		// measures what content actually gets inset by.
+		const shell = document.querySelector('main .section');
+		const pad = parseFloat(getComputedStyle(shell).paddingLeft) || 0;
+		const text = document.querySelector('main .section h2');
+		return {
+			gutter: pad,
+			frame,
+			// Where the first heading actually starts, measured from the frame's edge.
+			air: text ? Math.round(text.getBoundingClientRect().left - frame) : null,
+		};
+	})()`);
+
+	check(
+		`the gutter is ${expectedGutter}px at ${width}px wide`,
+		m.gutter === expectedGutter,
+		`measured ${m.gutter}px`,
+	);
+
+	check(
+		`content clears the frame by at least 8px at ${width}px wide`,
+		m.air !== null && m.air >= 8,
+		`${m.air}px of air inside a ${m.frame}px frame (gutter ${m.gutter}px, expected ${expectedFrame}px frame)`,
 	);
 }
 

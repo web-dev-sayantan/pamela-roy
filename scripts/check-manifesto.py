@@ -39,11 +39,14 @@ LINES = [
 ]
 
 # --- desktop: fixed breaks, must fit -----------------------------------------
-DESKTOP_MIN_PX, DESKTOP_MAX_PX = 2.75 * 16, 6 * 16
+DESKTOP_MIN_PX, DESKTOP_MAX_PX = 2.75 * 16, 5.5 * 16
 DESKTOP_VW = 6.5
-HERO_MAX_WIDTH = 92 * 16
-SIDE_PADDING = 1.5 * 16                      # --sp-4, in px via rem
-FRAME_STEPS = [(640, 20), (1024, 36), (10**9, 48)]
+# .hero__inner is now the same box as .shell: --measure-wide plus two --gutter.
+# It used to be a wider 92rem padded by --frame-w + --sp-4, which put the
+# manifesto 24px right of every section beneath it.
+MEASURE_WIDE = 68 * 16
+# Must match the --frame-w / --gutter steps in base.css.
+FRAME_STEPS = [(640, 12, 32), (1024, 28, 48), (10**9, 48, 80)]
 
 
 # --- mobile: released breaks -------------------------------------------------
@@ -94,14 +97,27 @@ def font_size(vw, lo, hi, factor):
 
 
 def frame_width(vw):
-    for limit, px in FRAME_STEPS:
+    for limit, px, _gutter in FRAME_STEPS:
         if vw <= limit:
             return px
     return 48
 
 
+def gutter_width(vw):
+    for limit, _frame, gutter in FRAME_STEPS:
+        if vw <= limit:
+            return gutter
+    return 80
+
+
 def content_width(vw, max_width, padding):
-    return min(vw, max_width) - 2 * (frame_width(vw) + padding)
+    """The hero's column: the shell's box, less the gutter on each side.
+
+    max_width is the *outer* box, so it already carries the gutters — passing
+    MEASURE_WIDE + 2 * --gutter is what makes the arithmetic come out at the
+    reading measure rather than 160px under it.
+    """
+    return min(vw, max_width) - 2 * (gutter_width(vw) + padding)
 
 
 def check_desktop():
@@ -113,7 +129,7 @@ def check_desktop():
     failures = 0
     for vw in viewports:
         size = font_size(vw, DESKTOP_MIN_PX, DESKTOP_MAX_PX, DESKTOP_VW)
-        column = content_width(vw, HERO_MAX_WIDTH, SIDE_PADDING)
+        column = content_width(vw, MEASURE_WIDE + 2 * gutter_width(vw), 0)
         longest = max(
             text_width(t, s, size, up) for t, s, up in LINES
         )
@@ -164,7 +180,7 @@ def check_mobile():
     failures = 0
     for vw, vh in devices:
         size = font_size(vw, MOBILE_MIN_PX, MOBILE_MAX_PX, MOBILE_VW)
-        column = content_width(vw, HERO_MAX_WIDTH, SIDE_PADDING)
+        column = content_width(vw, MEASURE_WIDE + 2 * gutter_width(vw), 0)
         measure = min(column, MOBILE_MEASURE)
 
         # Each authored line is a block that wraps internally and never mixes

@@ -364,7 +364,7 @@ const showToc = countWords(entry.body ?? '') >= TOC_MIN_WORDS;
 			grid-column: 2;
 			position: sticky;
 			/* Clears the sticky header and the progress hairline beneath it. */
-			top: calc(var(--frame-w) + var(--header-h) + var(--sp-5));
+			top: calc(var(--gutter) + var(--header-h) + var(--sp-5));
 			align-self: start;
 		}
 	}

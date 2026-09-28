@@ -104,10 +104,10 @@
 <style>
 	.progress {
 		position: fixed;
-		/* The header's own height: its frame-width of top padding, then the bar. */
-		top: calc(var(--frame-w) + var(--header-h));
-		left: var(--frame-w);
-		right: var(--frame-w);
+		/* The header's own height: its gutter of top padding, then the bar. */
+		top: calc(var(--gutter) + var(--header-h));
+		left: var(--gutter);
+		right: var(--gutter);
 		/* Above the page content, below the header and the mobile menu. */
 		z-index: 99;
 		height: 2px;

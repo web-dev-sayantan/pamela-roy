@@ -69,7 +69,12 @@ const { items, compact = false, stacked = false } = Astro.props;
 <style>
 	.services {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+		/* min(), not the bare 20rem: a minmax floor is a hard minimum, so a
+		   20rem track inside a 19rem column overflows rather than yielding. On a
+		   360px phone the column really is narrower than 20rem once the gutter is
+		   taken off both sides, and the cards ran out under the frame. Capping the
+		   floor at the container's own width lets the track shrink instead. */
+		grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
 		gap: var(--sp-6) clamp(2rem, 4vw, 3.5rem);
 		margin: 0;
 		padding: 0;

@@ -179,7 +179,7 @@ const url = new URL(Astro.url.pathname, Astro.site ?? SITE.url).href;
 		   slides down to just inside the casing — the frame stays visible all
 		   the way round it, like everything else meant to be read. */
 		top: 0;
-		left: calc(var(--frame-w) + var(--sp-3));
+		left: calc(var(--gutter) + var(--sp-3));
 		z-index: 400;
 		padding: 0.7em 1.2em;
 		background: var(--paper-raised);
@@ -197,6 +197,6 @@ const url = new URL(Astro.url.pathname, Astro.site ?? SITE.url).href;
 	}
 
 	.skip-link:focus {
-		transform: translateY(calc(var(--frame-w) + var(--sp-3)));
+		transform: translateY(calc(var(--gutter) + var(--sp-3)));
 	}
 </style>

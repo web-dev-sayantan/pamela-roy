@@ -83,16 +83,21 @@ body::after {
 	z-index: 200;
 }
 
-/* The frame is 48px of warm wall. It gets thinner as the room gets smaller. */
+/* The frame is 48px of warm wall on a desktop, and a slimmer casing as the
+   room gets smaller.
+
+   --gutter steps alongside it, and is the larger of the two at every stop.. */
 @media (max-width: 1024px) {
 	:root {
-		--frame-w: 36px;
+		--frame-w: 28px;
+		--gutter: 3rem;
 	}
 }
 
 @media (max-width: 640px) {
 	:root {
-		--frame-w: 20px;
+		--frame-w: 12px;
+		--gutter: 2rem;
 	}
 }
 

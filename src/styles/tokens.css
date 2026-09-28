@@ -72,8 +72,12 @@
 	   has to fit inside the frame. These bounds are measured, not guessed —
 	   scripts/check-manifesto.py reports the fill at every viewport, and it
 	   wants fontTools (`python3 -m pip install fonttools brotli`). Re-run it
-	   after changing the manifesto copy or these values. */
-	--fs-manifesto: clamp(2.75rem, 6.5vw, 6rem);
+	   after changing the manifesto copy or these values.
+
+	   The 5.5rem ceiling is measured against the hero's own column now that it
+	   shares .shell's box: 6rem put the longest authored line at 1124px inside
+	   a 1088px column, so the caps had to come down with the width. */
+	--fs-manifesto: clamp(2.75rem, 6.5vw, 5.5rem);
 	--fs-display-l: clamp(2.5rem, 6.5vw, 5rem); /* page titles         */
 	--fs-display-m: clamp(1.875rem, 4vw, 3rem); /* section headings    */
 	--fs-display-s: clamp(1.375rem, 2.2vw, 1.875rem); /* card titles         */
@@ -106,10 +110,17 @@
 	--sp-9: 8rem;
 	--sp-section: clamp(4rem, 9vw, 8.5rem); /* vertical section rhythm */
 
-	/* ---- Measure & frame -------------------------------------------------- */
+	/* ---- Measure, frame & gutter ----------------------------------------- */
 	--measure: 34rem; /* ~68ch prose line length */
 	--measure-wide: 68rem;
-	--frame-w: 48px; /* 36px ≤1024px, 20px ≤640px */
+	--frame-w: 48px; /* 28px ≤1024px, 12px ≤640px */
+	/* The inset every piece of content keeps from the edge of the window.
+	   Deliberately a different number from --frame-w, and the difference is
+	   the point: the frame is a drawn casing, the gutter is air inside it.
+	   While they were one value the content sat exactly on the casing's inner
+	   edge — zero gutter, text touching the border — at every width below
+	   1200px. See base.css. */
+	--gutter: 5rem; /* 3rem ≤1024px, 2rem ≤640px */
 	--header-h: 76px;
 
 	/* ---- Motion ----------------------------------------------------------- */
