@@ -59,7 +59,10 @@ const { items, compact = false, stacked = false } = Astro.props;
 				)}
 
 				<Button quiet href={`/services/${service.id}`}>
-					Read more
+					{/* The title names the destination: "Read more" alone tells a
+					    crawler (and a screen-reader user jumping the link list)
+					    nothing about where the link goes. */}
+					Read more about {service.data.title}
 				</Button>
 			</li>
 		))

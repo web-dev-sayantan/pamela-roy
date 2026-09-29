@@ -236,7 +236,23 @@ try {
 	/* --- 3. CLS, which is the reason dimensions are required ------------- */
 
 	const imgTags = [...card.matchAll(/<img\s[^>]*>/g)].map((m) => m[0]);
-	const coverImg = imgTags.find((t) => /phase9-probe|_astro/.test(t)) ?? '';
+	/*
+	 * The fixture, matched by name and nothing else.
+	 *
+	 * This used to be `/phase9-probe|_astro/`, and the `_astro` half was there
+	 * because the emitted filename carries a hash — `phase9-probe.DTLNlQSc.avif`
+	 * — so `phase9-probe` alone looked like it would not match. It does match:
+	 * the stem is preserved and only a hash is spliced in, which is the same
+	 * fact `unfingerprint()` in src/lib/cover.ts is built on.
+	 *
+	 * The `_astro` alternative then made this check read whatever image came
+	 * *first* in the document rather than the one it was written for, and that
+	 * was harmless for as long as the fixture was the only image on the shelf.
+	 * The moment a real cover was published this reported the photograph's
+	 * aspect ratio (848×1264) as though it were the fixture's, and failed a
+	 * check about a generated grey probe on the strength of Pamela's artwork.
+	 */
+	const coverImg = imgTags.find((t) => /phase9-probe/.test(t)) ?? '';
 	const withDims = imgTags.filter((t) => /\swidth="\d+"/.test(t) && /\sheight="\d+"/.test(t));
 
 	check(
@@ -607,11 +623,30 @@ check(
 	await new Response(rebuild.stderr).text();
 	const code = await rebuild.exited;
 	const avifAfter = readdirSync('dist/_astro').filter((f) => f.endsWith('.avif'));
+	const fixtureAvif = avifAfter.filter((f) => /phase9-/.test(f));
 
+	/*
+	 * "No *fixture* AVIF left", not "no AVIF at all".
+	 *
+	 * This asserted `avifAfter.length === 0`, which conflated "the fixtures were
+	 * cleaned up" with "this project has no images". Both were true when it was
+	 * written — the audit recorded zero covers and no portrait — and the assertion
+	 * was a way of saying the first thing. As soon as a real cover shipped it also
+	 * asserted the second, so it failed on a build that was perfectly correct and
+	 * the gate went red for a piece of writing gaining a photograph.
+	 *
+	 * Filtering on the fixture prefix keeps the original meaning intact and leaves
+	 * the count visible in the detail, so a leftover fixture is still reported as
+	 * one and not as a pile of unrelated output.
+	 */
 	check(
 		'the build is clean again with the fixtures removed',
-		code === 0 && avifAfter.length === 0,
-		code === 0 ? `no avif left in dist/_astro` : 'the second build failed',
+		code === 0 && fixtureAvif.length === 0,
+		code === 0
+			? fixtureAvif.length
+				? `left behind: ${fixtureAvif.join(', ')}`
+				: `no fixture avif left in dist/_astro (${avifAfter.length} from real covers, expected)`
+			: 'the second build failed',
 	);
 }
 
