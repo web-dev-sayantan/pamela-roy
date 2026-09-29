@@ -8,7 +8,6 @@ tags: [books, rejection, research]
 # plate is only the fallback for a piece with no picture. See covers/.
 cover: ./covers/getting-a-book-back.webp
 coverAlt: A brown paper envelope tied with black cord and sealed with a red wax stamp, addressed in type to a returned manuscript.
-draft: true
 ---
 
 Working notes. Not ready, not for the site yet.
