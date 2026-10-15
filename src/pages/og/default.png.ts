@@ -21,7 +21,7 @@ import { sharp } from '../../lib/raster';
 
 export const GET: APIRoute = async () => {
 	const svg = cardSvg({
-		title: SITE.tagline,
+		title: `${SITE.name}. ${SITE.tagline}`,
 		// The bare host, not the scheme: a card is read at a glance and https://
 		// is four characters of nothing.
 		meta: SITE.url.replace(/^https?:\/\//, '').toUpperCase(),

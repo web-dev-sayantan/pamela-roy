@@ -31,11 +31,18 @@ const { page } = Astro.props;
 /* One call serves the body and the contents, which therefore cannot disagree
    about what the page contains. */
 const { Content, headings } = await render(page);
+
+/* The margin holds a contents when the page asks for one, or whatever the route
+   puts in the `aside` slot — the headshot, on /about. */
+const hasAside = page.data.showToc || Astro.slots.has('aside');
 ---
 
 <PageLayout
 	eyebrow={page.data.eyebrow}
 	title={page.data.title}
+	docTitle={page.data.docTitle}
+	headline={page.data.headline}
+	quiet={page.data.quiet}
 	/* The one field doing two jobs: the sentence under the title a reader sees
 	   and the sentence a crawler reads. They are the same sentence because
 	   there is only one of it. */
@@ -50,10 +57,10 @@ const { Content, headings } = await render(page);
 
 	<section class="section section--flush">
 		<div class="shell">
-			<Measured aside={page.data.showToc}>
-				{page.data.showToc && (
+			<Measured aside={hasAside}>
+				{hasAside && (
 					<Fragment slot="aside">
-						<Toc headings={headings} />
+						{page.data.showToc ? <Toc headings={headings} /> : <slot name="aside" />}
 					</Fragment>
 				)}
 
@@ -71,7 +78,7 @@ const { Content, headings } = await render(page);
 					<PullQuote cite={page.data.pullQuoteCite}>{page.data.pullQuote}</PullQuote>
 				)}
 
-				<Prose>
+				<Prose class:list={['prose--plain', !hasAside && 'prose--split']}>
 					<Content />
 				</Prose>
 			</Measured>

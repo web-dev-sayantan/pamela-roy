@@ -1,0 +1,60 @@
+---
+/**
+ * /culture — short. A few sentences, then a hero block to each subpage. There is
+ * one today; more can be added to `cards`.
+ *
+ * One photograph is allowed here — captioned, modest, below the fold — and none
+ * is supplied yet.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import Prose from '../../components/Prose.astro';
+import Doors from '../../components/Doors.astro';
+
+const cards = [
+	{
+		href: '/culture/cooking',
+		title: 'Cooking Workshops',
+		line: 'Indian cooking in Berlin, taught as thinking.',
+	},
+];
+---
+
+<PageLayout
+	title="Culture"
+	description="I teach Indian cooking in Berlin, and I write about food, family and what happens at a table."
+	quiet
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<div class="split">
+				<p class="statement">I firmly believe culture lives through practice, not performance.</p>
+				<Prose class="prose--plain split__body">
+				<p>
+					So I teach Indian cooking in Berlin, and write about food, migration and human behaviour. The two feed each other, and both feed the day job more than you'd think.
+				</p>
+				</Prose>
+			</div>
+
+			<div class="split split--wide cards">
+				<div class="split__body">
+					<Doors items={cards} label="Culture" />
+				</div>
+			</div>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.statement {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 40;
+		font-weight: 500;
+		font-size: var(--fs-display-s);
+		line-height: 1.25;
+		text-wrap: balance;
+	}
+
+	.cards {
+		margin-block-start: var(--sp-7);
+	}
+</style>

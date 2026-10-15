@@ -1,0 +1,124 @@
+---
+/**
+ * /work — a short landing page, then three cards linking out.
+ *
+ * No photograph here. The closing block reads as an invitation, not a pitch: a
+ * recruiter should get through the page without anything smelling of a funnel,
+ * and a client who is nodding needs an address, not a booking widget.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import Prose from '../../components/Prose.astro';
+import Doors from '../../components/Doors.astro';
+import { SITE } from '../../lib/site';
+
+const cards = [
+	{
+		href: '/work/essays',
+		kicker: 'Writing',
+		title: 'Essays',
+		line: 'Brands, culture and behaviour. What I\'d want to be read.',
+	},
+	{
+		href: '/work/ai-adoption',
+		kicker: 'Case study',
+		title: 'AI Adoption: a case study',
+		line: 'A workflow-first adoption course for working professionals. I wrote up what happened in the room as a case study on adoption behaviour.',
+	},
+	{
+		href: '/work/ai-workshops',
+		kicker: 'Teaching',
+		title: 'AI Workshops',
+		line: 'Generative AI for working professionals at the Volkshochschulen in Berlin.',
+	},
+];
+
+const mail = `mailto:${SITE.email}`;
+---
+
+<PageLayout
+	title="Work"
+	description="Branding, communications and marketing, across consumer tech, fintech, B2B consulting and industry."
+	quiet
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<Prose class="prose--plain prose--split">
+				<h2>What I do</h2>
+				<p>
+					Most communication problems aren’t writing problems. They’re problems of not knowing what the
+					other side already thinks.
+				</p>
+				<p>Things I'm usually hired for:</p>
+				<p>
+					<strong>Branding and positioning.</strong> Working out what an organisation actually stands
+					for, in language it can use, and keeping it consistent as the business changes underneath it.
+				</p>
+				<p>
+					<strong>Strategic communications.</strong> Internal and external messaging through change —
+					transformations, launches, the moments when what you say matters more than usual. Including
+					the unglamorous parts: all-hands scripts, incident comms, the email that has to go out before
+					the rumour does.
+				</p>
+				<p>
+					<strong>Thought leadership and executive communications.</strong> Op-eds, keynotes, LinkedIn,
+					bylines. With the editorial strategy and channel planning behind them, so it isn’t one good
+					piece followed by eight months of silence.
+				</p>
+
+				<h2>Where I've done it</h2>
+				<p>
+					<strong>Siemens Advanta, Munich.</strong> Communication and content strategy for digital
+					transformation propositions, with product, sales and leadership.
+				</p>
+				<p>
+					<strong>SWISS KRONO, Berlin.</strong> Group communications across internal channels, website
+					and social, during a period of transformation.
+				</p>
+				<p>
+					<strong>Times Internet, India.</strong> Organic social and communications for co-branded card
+					products with HDFC Bank. Before that, customer experience for a product with 300,000 daily
+					active users.
+				</p>
+				<p>
+					<strong>MakeMyTrip, India.</strong> Four years coordinating product, sales, finance and
+					suppliers in high-volume travel operations.
+				</p>
+				<p>
+					<strong>Volkshochschule, Berlin.</strong> Generative AI for working professionals, using
+					frameworks I built. The closest thing I have to a live research setting.
+				</p>
+			</Prose>
+
+
+			<Prose class="prose--plain prose--split open justify">
+				<p>
+					I'm open to communications and branding roles in Germany, and to consulting and collaboration
+					alongside them. If you have something in mind, write to me at{' '}
+					<a href={mail}>{SITE.email}</a>. I answer everything.
+				</p>
+			</Prose>
+
+			<div class="split split--wide cards">
+				<div class="split__body">
+					<Doors items={cards} label="Work" />
+				</div>
+			</div>
+
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.justify :global(p) {
+		text-align: justify;
+		hyphens: auto;
+	}
+
+	.open {
+		margin-block-start: var(--sp-7);
+	}
+
+	.cards {
+		margin-block: var(--sp-7);
+	}
+</style>

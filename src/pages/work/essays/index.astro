@@ -1,0 +1,47 @@
+---
+/**
+ * /work/essays — a portfolio, not a blog.
+ *
+ * No dates, no "latest", no pagination, no feed. Each essay is a title, one
+ * line on what it argues, and a link. An archive presented as considered work
+ * reads as authority; the same pieces with timestamps read as neglected. Don't
+ * add a date field here.
+ */
+import PageLayout from '../../../layouts/PageLayout.astro';
+import Subscribe from '../../../components/Subscribe.astro';
+import EssayList from '../../../components/EssayList.astro';
+import { essaysIn } from '../../../lib/essays';
+
+const essays = await essaysIn('essay');
+---
+
+<PageLayout
+	title="Essays"
+	eyebrow="Work"
+	description="I write about brands, culture and how people actually behave."
+	quiet
+	trail={[
+		{ name: 'Work', path: '/work' },
+		{ name: 'Essays', path: '/work/essays' },
+	]}
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<div class="split">
+				<h2 class="split__label">Selected essays</h2>
+				<div class="split__body">
+					<EssayList essays={essays} />
+				</div>
+			</div>
+
+			<div class="split split--wide">
+				<div class="split__body">
+					<Subscribe
+						id="essays"
+						lead="Shorter pieces go out through the newsletter. An essay every so often, on culture, memories and how people actually behave."
+					/>
+				</div>
+			</div>
+		</div>
+	</section>
+</PageLayout>

@@ -1,38 +1,40 @@
 ---
 title: About
-description: Who Pamela Roy is, where the writing comes from, and how to get in touch.
-eyebrow: The person here
-showToc: false
-pullQuote: Writing a book for somebody and helping somebody write their own are not the same job, and I do both.
-# A portrait belongs here as `portrait:` with a `portraitAlt:`. Until one is
-# added, the page sets a typographic plate instead — the same stand-in a shelf
-# card uses when a piece has no cover, so a missing picture reads as a choice.
+description: India taught me to read a room. Germany taught me to hold the room.
+quiet: true
+# The headshot is src/assets/about.jpg (or .webp / .png). Its caption — place and
+# date, e.g. "Vienna, Mar 2024" — is `photoCaption:` here, and `portraitAlt:` is
+# its alt text.
 ---
 
-I am a writer and a ghostwriter. I live in the west of England, not far from a ridge path that I walk more often than is strictly necessary, and I have been doing this for long enough that I no longer have a plan for it.
+## India taught me to read a room.
 
-I write essays and interviews that are my own, and books that belong to somebody else. The second job pays for the first, or the other way round on a good month.
+I grew up in a joint family of twenty in Calcutta. If you know even one big Indian family, you probably know that that gives you a management education for free, and nobody claps when you graduate.
 
-## What I do with my own work
+Grandpa's mood ran downstream of the rice. Grandma never announced a nap. She went quiet in her chair with the television still on, and you learnt to leave both alone. You could wear the red lipstick and the blue eyeliner if the eldest cousin was willing to tell your mom she had been experimenting on you.
 
-Essays, mostly, and the subjects follow a fairly narrow line: how writing actually happens, as distinct from how it is described; books and what they do to a person over a winter; landscape, walked rather than photographed. A few interviews, usually with people who make things and are not used to being asked about process.
+Twenty people in one house and almost nothing important was said out loud. You work it out from what people do.
 
-Everything is filed here, newest first.
+Years later, I was interning at the Taj Bengal when a British-Indian guest asked for *hari chutney*. He got *hari chutney*. However, he looked as if he was served a kale smoothie. Turned out he wasn't asking for just *hari chutney*.\
+He was asking for the version served at every Indian wedding he had been taken to as a child, loosened with yoghurt, cooler and rounder than the thing itself. I sent that out. He was delighted.
 
-## What I do for other people
+Nothing about his request was wrong. He asked for the right thing. He just meant a different one.
 
-Ghostwriting. Mostly books, occasionally a long article series. If you have something to say and not quite the time or the habit to say it well, that is the whole of the pitch, and it is a better description of the work than the phrase *ghostwriting* usually manages.
+Thirteen years since then. Fintech and travel operations in India, B2B consulting in Munich, industry in Berlin. The job has never changed. Find out what people mean rather than what they say. Customers who never complain, so you find the problem before it reaches you. Users who tell you a feature is unhelpful when what they mean is they don't trust it. Build from there, not from the brief.
 
-There is a page for that, and a page for [coaching](/services/coaching), which is different and I am asked about the difference more than I expected.
+## Germany taught me to hold the room.
 
-## Elsewhere
+I came expecting a high-tech version of everything, and was told at the first counter that payment was *nur Barzahlung*. Cash only. That was the first correction. There were others.
 
-I do not post very often, and I do not curate a feed. There is a newsletter, and there is an email address, which I read.
+The first year was cold in every way. Then came the *Weihnachtsmärkte*, and after that I stopped waiting for the place to explain itself and went looking. What I found was a country where people disagree with you to your face and mean nothing by it, where someone will tell you exactly what they thought of a book, and where one U-Bahn line runs from a twelve-floor office to an underground club without anyone finding the sequence remarkable.
 
-I would rather have an email than a mention. Nothing in this room is urgent and nothing about it is a performance, and I have no interest in turning it into one.
+Two years in, I taught my first workshop.\
+I had spent a career working out what rooms wanted without ever standing at the front of one. Six people in attendance, not in my first language, in a country where the paperwork could still catch me out. They came back the next week. And the week after.
 
-## The room
+## Now
 
-The site is deliberately quiet. A warm background, a lot of white space, three typefaces, and one accent colour used about five times. It is built with no tracking, no cookies, and no newsletter pop-up, and there is a [colophon](/colophon) if you want to know what it is made of.
+In that house of twenty, one cooked beautifully. One played cricket properly. One could fix anything. One told stories so well that I was convinced Lord Vishnu was personally responsible for our security. As I loved all of them, I naturally wanted to be all of them.
 
-I hope it is a restful place to read. That is the entire ambition.
+So I never learnt to choose. Between business and imagination. Teaching generative AI to working professionals and hosting cooking workshops for rooms of strangers. Between the present and the past.
+
+It looks like four things. It has only ever been one.

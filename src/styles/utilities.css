@@ -202,3 +202,65 @@
 	);
 	filter: blur(12px);
 }
+
+/* ------------------------------------------------------------------ split ---
+   The page's section layout: a heading in a left column, its body in the right.
+   It uses the width of the shell instead of leaving everything to the left of a
+   single narrow column, which on a desktop left the right half blank.
+
+   `--split-label` is the heading column; `.split` is for blocks built from
+   components and `.prose--split` (prose.css) is the same arrangement for
+   Markdown-shaped copy, so the two line up on one page. Below the breakpoint
+   both stack. */
+:root {
+	--split-label: 30%;
+	--split-gap: clamp(2rem, 4vw, 4rem);
+	--split-body: 42rem;
+}
+
+.split {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--sp-3);
+}
+
+.split + .split,
+.split + .prose--split,
+.prose--split + .split {
+	margin-block-start: var(--sp-7);
+}
+
+.split__label {
+	font-family: var(--font-display);
+	font-variation-settings: 'opsz' 30;
+	font-weight: 500;
+	font-size: var(--fs-display-s);
+	line-height: 1.2;
+	text-wrap: balance;
+}
+
+@media (min-width: 900px) {
+	.split {
+		grid-template-columns: var(--split-label) minmax(0, 1fr);
+		column-gap: var(--split-gap);
+		align-items: start;
+	}
+
+	.split__label {
+		position: sticky;
+		top: calc(var(--header-h) + var(--sp-5));
+	}
+
+	.split__body {
+		max-width: var(--split-body);
+	}
+
+	/* A block that should take the whole width, like a row of hero blocks. */
+	.split--wide {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.split--wide .split__body {
+		max-width: none;
+	}
+}

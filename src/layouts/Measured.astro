@@ -31,7 +31,7 @@ interface Props {
 const { aside = false } = Astro.props;
 ---
 
-<div class="measured">
+<div class:list={['measured', aside && 'measured--aside']}>
 	{aside && <div class="measured__aside"><slot name="aside" /></div>}
 
 	<div class="measured__body">
@@ -50,9 +50,22 @@ const { aside = false } = Astro.props;
 	}
 
 	@media (min-width: 1080px) {
-		.measured {
-			grid-template-columns: minmax(0, var(--measure)) minmax(0, 1fr);
+		/* Two columns only when there is something for the second: with no
+		   aside the body takes the whole shell instead of a 34rem strip with
+		   the rest of the page blank. */
+		.measured--aside {
+			grid-template-columns: minmax(0, var(--split-body)) minmax(0, 1fr);
 			column-gap: clamp(2rem, 5vw, 5rem);
+		}
+
+		/* The aside hugs the right-hand edge of the shell. */
+		.measured--aside .measured__aside {
+			justify-self: end;
+			width: min(100%, 20rem);
+		}
+
+		.measured--aside .measured__body :global(.prose) {
+			max-width: none;
 		}
 
 		.measured__body {

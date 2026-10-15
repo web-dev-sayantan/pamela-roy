@@ -1,0 +1,67 @@
+---
+/**
+ * EssayList — title, one line, link. No dates, by design: this is a portfolio.
+ * Shared by /work/writing and /culture/writing so the two cannot drift.
+ */
+import { essayHref, type Essay } from '../lib/essays';
+
+interface Props {
+	essays: Essay[];
+}
+
+const { essays } = Astro.props;
+---
+
+<ul class="essays" role="list">
+	{
+		essays.map((essay) => (
+			<li class="essay">
+				<h2 class="essay__title">
+					{essayHref(essay) ? <a href={essayHref(essay)}>{essay.data.title}</a> : essay.data.title}
+				</h2>
+				{essay.data.line && <p class="essay__line">{essay.data.line}</p>}
+			</li>
+		))
+	}
+</ul>
+
+<style>
+	.essays {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.essay {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-2);
+		padding-block: var(--sp-4);
+		border-top: 1px solid var(--rule);
+	}
+
+	.essay:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.essay__title {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 30;
+		font-weight: 600;
+		font-size: var(--fs-display-s);
+		line-height: 1.2;
+	}
+
+	.essay__title a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.essay__title a:hover {
+		color: var(--ember);
+	}
+
+	.essay__line {
+		color: var(--ink-soft);
+	}
+</style>

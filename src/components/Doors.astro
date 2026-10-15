@@ -1,0 +1,125 @@
+---
+/**
+ * Doors — hero blocks linking to the subpages.
+ *
+ * Side-by-side tiles, not a stacked list: each one is a title set large, an
+ * optional line, and an arrow. Used for the home page's three doors, Work's two
+ * cards and Culture's two. The grid fits however many it is given — three
+ * across on a wide screen, two for a pair, one column on a phone.
+ */
+interface Door {
+	href: string;
+	title: string;
+	/** One line under the title. */
+	line?: string;
+	/** Small tracked label above the title. */
+	kicker?: string;
+}
+
+interface Props {
+	items: Door[];
+	/** Accessible name for the group. */
+	label: string;
+	/** One tile, centred on the page with its text centred in it. */
+	center?: boolean;
+}
+
+const { items, label, center = false } = Astro.props;
+---
+
+<nav class:list={['doors', center && 'doors--center']} aria-label={label}>
+	<ul role="list">
+		{
+			items.map((item) => (
+				<li>
+					<a class="door" href={item.href}>
+						{item.kicker && <span class="label">{item.kicker}</span>}
+						<span class="door__title">{item.title}</span>
+						{item.line && <span class="door__line">{item.line}</span>}
+						<span class="door__arrow" aria-hidden="true">→</span>
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>
+
+<style>
+	.doors ul {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+		gap: var(--sp-4);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.doors--center ul {
+		grid-template-columns: minmax(0, 36rem);
+		justify-content: center;
+	}
+
+	.doors--center .door {
+		align-items: center;
+		min-height: 0;
+		text-align: center;
+	}
+
+	.doors--center .door__arrow {
+		margin-block-start: var(--sp-2);
+	}
+
+	.door {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-3);
+		height: 100%;
+		min-height: 15rem;
+		padding: clamp(var(--sp-4), 3vw, var(--sp-5));
+		background: var(--paper-deep);
+		border: 1px solid var(--rule);
+		border-radius: 2px;
+		color: var(--ink);
+		text-decoration: none;
+		transition:
+			background-color var(--t-base) var(--ease-out),
+			border-color var(--t-base) var(--ease-out);
+	}
+
+	.door__title {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 60;
+		font-weight: 500;
+		font-size: var(--fs-display-m);
+		line-height: var(--lh-heading);
+		text-wrap: balance;
+	}
+
+	.door__line {
+		color: var(--ink-soft);
+		font-size: var(--fs-body);
+		line-height: 1.5;
+	}
+
+	/* Pushed to the foot, so a row of tiles lines its arrows up however long
+	   the lines run. */
+	.door__arrow {
+		margin-block-start: auto;
+		font-family: var(--font-ui);
+		color: var(--ink-muted);
+		transition:
+			transform var(--t-base) var(--ease-out),
+			color var(--t-micro) var(--ease-out);
+	}
+
+	.door:hover {
+		background: var(--ember-wash);
+		border-color: var(--ember);
+	}
+
+	.door:hover .door__arrow {
+		color: var(--ember);
+		transform: translateX(0.35em);
+	}
+</style>

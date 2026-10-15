@@ -1,0 +1,185 @@
+---
+/**
+ * Subscribe — the one subscribe block, on Home, /work/writing and in the footer.
+ *
+ * It feeds the existing Substack publication and nothing else: there is no
+ * second list. The form posts straight to Substack's own endpoint, so it works
+ * with JavaScript off and loads nothing from Substack until someone submits —
+ * an iframe embed would put a third party on every page and cookies with it.
+ *
+ * The newsletter's name is in every block, as the brief asks. `lead` replaces
+ * the default blurb where a page has its own sentence to say (the writing page
+ * points to the newsletter for shorter pieces).
+ *
+ * Ids are namespaced by `id`: the footer's block and a page's block share a
+ * document.
+ */
+import Button from './Button.astro';
+import { SITE } from '../lib/site';
+
+interface Props {
+	/** Namespaces the element ids. Unique per block on a page. */
+	id: string;
+	/** Replaces the default one-line description. */
+	lead?: string;
+	/** Smaller, flat variant for the footer. */
+	compact?: boolean;
+}
+
+const { id, lead = SITE.newsletter.blurb, compact = false } = Astro.props;
+const { name, publication } = SITE.newsletter;
+const action = `${publication}/api/v1/free?nojs=true`;
+---
+
+<aside class:list={['subscribe', compact && 'subscribe--compact']} aria-labelledby={`${id}-name`}>
+	<div class="subscribe__text">
+		<p class="label">Newsletter</p>
+		<h2 class="subscribe__name" id={`${id}-name`}>{name}</h2>
+		<p class="subscribe__lead">{lead}</p>
+	</div>
+
+	<div class="subscribe__action">
+	<form class="subscribe__form" id={`${id}-form`} method="post" action={action} novalidate>
+		<label class="visually-hidden" for={`${id}-email`}>Email address</label>
+		<input
+			class="field subscribe__input"
+			id={`${id}-email`}
+			type="email"
+			name="email"
+			placeholder="you@example.com"
+			autocomplete="email"
+			required
+			aria-describedby={`${id}-error`}
+		/>
+		<Button type="submit">Subscribe</Button>
+	</form>
+	<p class="subscribe__error" id={`${id}-error`} role="status" hidden></p>
+	</div>
+</aside>
+
+<script>
+	// Enhancement only: the form posts to Substack without this. It catches a
+	// typo in place and never pretends a subscription succeeded.
+	const wire = () => {
+		document.querySelectorAll<HTMLFormElement>('.subscribe__form').forEach((form) => {
+			if (form.dataset.wired) return;
+			form.dataset.wired = 'true';
+
+			const input = form.querySelector<HTMLInputElement>('input[type="email"]');
+			const error = document.getElementById(`${form.id.replace(/-form$/, '')}-error`);
+
+			form.addEventListener('submit', (event) => {
+				const value = input?.value.trim() ?? '';
+				if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+					error?.setAttribute('hidden', '');
+					return;
+				}
+				event.preventDefault();
+				if (error) {
+					error.textContent = 'That address does not look complete. Mind checking it.';
+					error.removeAttribute('hidden');
+				}
+				input?.focus();
+			});
+		});
+	};
+
+	wire();
+	document.addEventListener('astro:page-load', wire);
+</script>
+
+<style>
+	/* A recessed panel, as the old newsletter panel was: a step into the wall,
+	   not a raised card. */
+	.subscribe {
+		display: grid;
+		gap: var(--sp-4);
+		padding: clamp(var(--sp-5), 5vw, var(--sp-7));
+		background: var(--paper-deep);
+		border-radius: 2px;
+	}
+
+	.subscribe__text,
+	.subscribe__action {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-3);
+	}
+
+	/* The panel is wide, so the words take the left and the form the right,
+	   rather than everything hugging the left edge of a wide box. */
+	@media (min-width: 900px) {
+		.subscribe:not(.subscribe--compact) {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			column-gap: var(--split-gap);
+			align-items: end;
+		}
+	}
+
+	.subscribe__name {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 60;
+		font-weight: 500;
+		font-size: var(--fs-display-m);
+		line-height: var(--lh-heading);
+	}
+
+	.subscribe__lead {
+		max-width: var(--measure);
+		color: var(--ink-soft);
+	}
+
+	.subscribe__form {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-3);
+		width: 100%;
+		max-width: 30rem;
+	}
+
+	.subscribe__input {
+		flex: 1 1 14rem;
+	}
+
+	.subscribe__error {
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		color: var(--ember);
+	}
+
+	/* The footer's block sits on the page ground, not in a panel. */
+	.subscribe--compact {
+		padding: 0;
+		background: none;
+		gap: var(--sp-2);
+	}
+
+	.subscribe--compact .subscribe__text,
+	.subscribe--compact .subscribe__action {
+		gap: var(--sp-2);
+	}
+
+	.subscribe--compact .subscribe__name {
+		font-size: var(--fs-display-s);
+		font-weight: 600;
+		font-variation-settings: 'opsz' 30;
+	}
+
+	@media (max-width: 480px) {
+		.subscribe__form {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		/* The stacked form's main axis is vertical; reset the input's flex-basis
+		   or it becomes 14rem tall. */
+		.subscribe__input {
+			flex: 0 0 auto;
+		}
+
+		.subscribe :global(.btn) {
+			text-align: center;
+		}
+	}
+</style>

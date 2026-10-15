@@ -1,0 +1,120 @@
+---
+/**
+ * /culture/cooking — the cooking workshops.
+ *
+ * Leads with the thinking: visibly about culture and method rather than
+ * recipes. Photographs are allowed here, still captioned, still modest, still
+ * below the fold — none supplied yet.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import Prose from '../../components/Prose.astro';
+import Doors from '../../components/Doors.astro';
+import { essayHref, essaysIn } from '../../lib/essays';
+
+const dal = (await essaysIn('newsletter')).find((e) => e.id === 'caretakers-dal');
+
+const previously = [
+	'Festive Indian Cooking - Holi Colours on Your Plate · March 2026',
+	'Curry meets Sichuan - An Indo-Chinese Fusion · June 2026',
+	'Date Night Indian · September 2026',
+];
+
+const comingUp = [
+	{
+		title: 'Indian Restaurant Classics',
+		when: 'November 2026',
+		href: 'https://www.vhsit.berlin.de/VHSKURSE/BusinessPages/CourseDetail.aspx?id=802245',
+	},
+];
+---
+
+<PageLayout
+	title="Cooking Workshops"
+	eyebrow="Culture"
+	description="I teach Indian cooking at VHS Pankow in Berlin, with one principle: you will not leave with only a recipe you can follow forever."
+	trail={[
+		{ name: 'Culture', path: '/culture' },
+		{ name: 'Cooking Workshops', path: '/culture/cooking' },
+	]}
+	quiet
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<Prose class="prose--plain prose--split">
+				<h2>The logic, not the recipe</h2>
+				<p>
+					I teach Indian cooking, and I teach it with one principle: you will not leave with only a
+					recipe you can follow forever.
+				</p>
+				<p>
+					What you'll leave with is the logic. Why a Calcutta kitchen cooks Chinese with green chillies
+					while a Sichuan kitchen uses pepper, and what changes between them. Heat, souring, fat, when
+					you add the salt. Once you have those, the recipe becomes optional, which is how Indian
+					cooking has always actually worked.
+				</p>
+				<p>
+					I'm not a chef, and I don't pretend to run a professional kitchen. Nobody stands over you.
+					People take a job each; we cook the dishes one at a time, and it gets loud with conversations.
+				</p>
+			</Prose>
+
+			<div class="split">
+				<h2 class="split__label">Coming up</h2>
+				<div class="split__body">
+					<ul class="dates" role="list">{comingUp.map((c) => (
+						<li>
+							<a href={c.href}>{c.title}</a> · {c.when}
+						</li>
+					))}</ul>
+				</div>
+			</div>
+
+			<div class="split">
+				<h2 class="split__label">Previously</h2>
+				<div class="split__body">
+					<ul class="dates" role="list">{previously.map((line) => <li>{line}</li>)}</ul>
+				</div>
+			</div>
+
+			{
+				dal && (
+					<div class="feature">
+						<Doors
+							center
+							label="From the newsletter"
+							items={[
+								{
+									href: essayHref(dal) ?? '#',
+									kicker: 'From the newsletter',
+									title: dal.data.title,
+									line: dal.data.line,
+								},
+							]}
+						/>
+					</div>
+				)
+			}
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.dates {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.dates li {
+		padding-block: var(--sp-2);
+		border-top: 1px solid var(--rule);
+	}
+
+	.dates li:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.feature {
+		margin-block-start: var(--sp-7);
+	}
+</style>

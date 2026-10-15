@@ -140,3 +140,51 @@
 	line-height: 0.82;
 	color: var(--ink);
 }
+
+/* Pages that are not narrative — Work, Culture, a case study — open without the
+   drop cap. It belongs to the About page's story, and a cap on every block of
+   copy on the site would stop meaning anything. */
+.prose--plain > p:first-of-type::first-letter {
+	float: none;
+	padding: 0;
+	font: inherit;
+	line-height: inherit;
+}
+
+/* -------------------------------------------------------------- prose--split
+   Markdown-shaped copy laid out like `.split` (utilities.css): each `##`
+   heading sits in the left column and its paragraphs in the right.
+
+   A grid, not floats: the heading takes column one, the block after it takes
+   column two in the same row, and `align-items: baseline` puts the heading's
+   first line on the same baseline as the first line of the text beside it.
+   Every block that is not a heading goes in column two, and each new heading
+   starts a new row. Stacks on a narrow screen. */
+@media (min-width: 900px) {
+	.prose--split {
+		display: grid;
+		grid-template-columns: var(--split-label) minmax(0, var(--split-body));
+		column-gap: var(--split-gap);
+		align-items: baseline;
+		max-width: none;
+	}
+
+	.prose--split > h2 {
+		grid-column: 1;
+		margin: 0;
+		font-size: var(--fs-display-s);
+		line-height: 1.2;
+		text-wrap: balance;
+	}
+
+	.prose--split > *:not(h2) {
+		grid-column: 2;
+	}
+
+	/* Section air: on the heading and on the block beside it, equally, so the
+	   two still share a row top and a baseline. */
+	.prose--split > h2:not(:first-child),
+	.prose--split > h2:not(:first-child) + * {
+		margin-block-start: var(--sp-7);
+	}
+}

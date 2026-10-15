@@ -1,0 +1,164 @@
+---
+/**
+ * /work/ai-workshops — the VHS courses.
+ *
+ * German course titles stay in German, in italics, exactly as VHS lists them.
+ * Each links to its VHS listing — the listing URLs are not in the brief, so
+ * `href` is empty for now and the title simply is not a link until one is set.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import Prose from '../../components/Prose.astro';
+
+interface Course {
+	title: string;
+	/** The title as VHS lists it, in German. */
+	german?: string;
+	kind?: string;
+	when: string;
+	/** VHS listing. */
+	href?: string;
+}
+
+const venue = 'VHS Friedrichshain-Kreuzberg';
+
+const upcoming: Course[] = [
+	{
+		title: 'AI Workflows in Practice: Build Systems & Automate Tasks',
+		german: 'KI Praxis fortgeschritten',
+		when: 'November 2026',
+		href: 'https://www.vhsit.berlin.de/VHSKURSE/BusinessPages/CourseDetail.aspx?id=803295',
+	},
+	{
+		title: 'AI at Work: Save Hours with AI Assistance',
+		german: 'KI im Büroalltag',
+		when: 'April 2027',
+	},
+	{
+		title: 'Create with AI: Posts, Captions & Visuals in Less Time',
+		kind: 'Weekend course',
+		when: 'July 2027',
+	},
+];
+
+const previously: Course[] = [
+	{ title: 'Generative AI for Professional Use', when: 'Berlin, Apr 2026' },
+	{
+		title: 'Create with AI: High-Impact Content in Less Time',
+		kind: 'Weekend course',
+		when: 'July 2026',
+	},
+];
+
+---
+
+<PageLayout
+	title="AI Workshops"
+	eyebrow="Work"
+	description="Generative AI for working professionals at the Volkshochschulen in Berlin."
+	trail={[
+		{ name: 'Work', path: '/work' },
+		{ name: 'AI Workshops', path: '/work/ai-workshops' },
+	]}
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<Prose class="prose--plain prose--split">
+				<h2>Workflows, not features</h2>
+				<p>
+					I teach generative AI to working professionals at the Volkshochschulen in Berlin. The people
+					in the room generally don't want a tour of the tools. They want four hours of their week
+					back.
+				</p>
+				<p>
+					So the courses are built around workflows rather than features. We start from something the
+					participant actually does on a Tuesday, and build outwards from there.
+				</p>
+
+				<h2>Two frameworks I built for it</h2>
+				<p>
+					<strong>RCCO</strong> is a structure for writing a usable prompt. It replaces the habit of
+					collecting prompt templates with a way of thinking that transfers to any tool, including
+					whichever one launches next month.
+				</p>
+				<p>
+					<strong>TRAP</strong> is for designing a workflow rather than a single instruction. Where the
+					work starts, what the model is responsible for, where a human has to look, and what comes out
+					the other end.
+				</p>
+				<p>
+					Both were developed for these courses. They get taught as thinking structures, not recipes.
+					Participants leave able to build their own.
+				</p>
+			</Prose>
+
+			<div class="split">
+				<h2 class="split__label">Upcoming</h2>
+				<div class="split__body">
+					<ul class="courses" role="list">
+						{
+							upcoming.map((c) => (
+								<li class="course">
+									<p class="course__title">{c.href ? <a href={c.href}>{c.title}</a> : c.title}</p>
+									<p class="label">
+										{[c.german && <em>{c.german}</em>, c.kind, venue, c.when]
+											.filter(Boolean)
+											.map((part, i) => (i === 0 ? [part] : [' · ', part]))}
+									</p>
+								</li>
+							))
+						}
+					</ul>
+				</div>
+			</div>
+
+			<div class="split">
+				<h2 class="split__label">Previously</h2>
+				<div class="split__body">
+					<ul class="courses" role="list">
+						{
+							previously.map((c) => (
+								<li class="course">
+									<p class="course__title">{c.href ? <a href={c.href}>{c.title}</a> : c.title}</p>
+									<p class="label">
+										{[c.kind, venue, c.when]
+											.filter(Boolean)
+											.map((part, i) => (i === 0 ? [part] : [' · ', part]))}
+									</p>
+								</li>
+							))
+						}
+					</ul>
+				</div>
+			</div>
+
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.courses {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.course {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding-block: var(--sp-3);
+		border-top: 1px solid var(--rule);
+	}
+
+	.course:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.course__title {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 30;
+		font-weight: 600;
+		font-size: var(--fs-title);
+		line-height: 1.25;
+	}
+</style>

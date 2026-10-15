@@ -1,114 +1,294 @@
 ---
 /**
- * The home page — the room, the manifesto, and a reason to keep reading.
+ * The home page — one screen and a little more.
  *
- * Four movements, in the order a visitor needs them: what this place is, who
- * is speaking, what has been written lately, and how to hire her. The
- * newsletter closes it because a letter is the thing a reader actually
- * comes back for.
- *
- * Section spacing and heading type come from .section in utilities.css, so
- * this file is only the copy and the composition.
+ * The identity line as a pull quote, a short introduction, a portrait on the
+ * right, and the subscribe block. The portrait is the black-and-white image
+ * from the portfolio: drop it in src/assets as `portrait.jpg` (or .webp / .png);
+ * until then the frame holds its place.
  */
+import { Picture } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
-
-import Manifesto from '../components/Manifesto.astro';
-import WritingGrid from '../components/WritingGrid.astro';
-import ServiceCard from '../components/ServiceCard.astro';
-import Newsletter from '../components/Newsletter.astro';
-
-import { allWritings, featuredWritings } from '../lib/writings';
-import { featuredServices } from '../lib/services';
-import { SITE } from '../lib/site';
-import { personLd, websiteLd } from '../lib/seo';
+import Subscribe from '../components/Subscribe.astro';
 import JsonLd from '../components/JsonLd.astro';
 
-const writings = (await allWritings()).slice(0, 4);
+import { SITE } from '../lib/site';
+import { personLd, websiteLd } from '../lib/seo';
 
-/* The teaser shows the first two offers and never a third: the home page is
-   the argument, not the catalogue. */
-const services = await featuredServices(2);
+const found = import.meta.glob<{ default: ImageMetadata }>('../assets/portrait.{jpg,jpeg,png,webp}', {
+	eager: true,
+});
+const portrait = Object.values(found)[0]?.default;
 
-/**
- * If a featured piece has a cover, the hero takes it. Today none do, so the
- * hero is typographic — which is the intended state, not a missing feature.
- */
-const [hero] = await featuredWritings();
-
-/*
- * The document title is the site name, so BaseHead's template leaves it alone
- * rather than appending "· Pamela Roy" to a title that already is that. What
- * goes in the search result and on the shared card is the tagline, which is the
- * same sentence the footer carries.
- */
+const sections = [
+	{
+		href: '/work',
+		title: 'Work',
+		line: 'Branding, communications and marketing, across consumer tech, fintech, B2B consulting and industry.',
+	},
+	{
+		href: '/culture',
+		title: 'Culture',
+		line: 'Cooking workshops in Berlin, and writing about food, family and the table.',
+	},
+	{
+		href: '/contact',
+		title: 'Contact',
+		line: 'Open to roles, consulting, collaborations and speaking.',
+	},
+];
 ---
 
-<BaseLayout title={SITE.name} description={SITE.tagline}>
+<BaseLayout title={SITE.name} description={SITE.description}>
 	<JsonLd data={websiteLd(Astro.site)} />
 	<JsonLd data={personLd(Astro.site)} />
 
 	<SiteHeader />
 
 	<main id="main">
-		<Manifesto cover={hero?.data.cover} coverAlt={hero?.data.coverAlt} />
+		<section class="intro">
+			<div class="hearth" aria-hidden="true"></div>
 
-		{/* ---------------------------------------------------------- who --- */}
-		<section class="section shell">
-			<div class="section__head" data-reveal>
-				<p class="label">Who I am</p>
-				<h2 class="section__heading">I keep the lamp on, and the door open.</h2>
-			</div>
+			<div class="shell intro__inner">
+				<div class="intro__text">
+					<h1 class="intro__quote">I find out what people already believe, and build from there.</h1>
 
-			<div class="section__body" data-reveal style="--i: 1">
-				<p>
-					I have been writing long enough that the technique has mostly gone
-					out of it. What is left is patience, and a fairly short list of
-					sentences I trust.
-				</p>
-				<p>
-					Everything I have written is filed in the library, newest first, and
-					none of it is behind a sign-up form. There is a way in from the side
-					if you would rather skip the newest and go looking.
-				</p>
-			</div>
-		</section>
+					<div class="intro__body">
+						<p class="label">Marketing and communications. Berlin.</p>
+						<p>
+							I’ve spent eight years on brand, product and internal communications across consumer
+							tech, fintech, B2B consulting and industry — at Siemens Advanta, SWISS KRONO, Times
+							Internet and MakeMyTrip. I teach generative AI to working professionals at the
+							Volkshochschulen Berlin, using frameworks I built, and Indian cooking to curious
+							Berliners. I write Culture &amp; Clarity, an essay newsletter on communication, culture
+							and behaviour.
+						</p>
+						<p>From Calcutta to Delhi, then Bavaria, now Berlin.</p>
+					</div>
+				</div>
 
-		{/* ----------------------------------------------------- the library --- */}
-		<section class="section shell">
-			<div class="section__head" data-reveal>
-				<p class="label">Latest</p>
-				<h2 class="section__heading">What is new on the desk.</h2>
-				<a class="section__link" href="/library">The whole library</a>
-			</div>
-
-			<div data-reveal style="--i: 1">
-				<WritingGrid items={writings} />
-			</div>
-		</section>
-
-		{/* --------------------------------------------------------- services --- */}
-		<section class="section shell">
-			<div class="section__head" data-reveal>
-				<p class="label">How I can help</p>
-				<h2 class="section__heading">
-					If the book needs writing, I can write it.
-				</h2>
-			</div>
-
-			<div data-reveal style="--i: 1">
-				<ServiceCard items={services} compact />
+				<figure class="intro__portrait">
+					<div class="intro__frame">
+						{
+							portrait && (
+								<Picture
+									src={portrait}
+									alt="Pamela Roy"
+									formats={['avif', 'webp']}
+									loading="eager"
+									fetchpriority="high"
+									widths={[320, 480, 640]}
+									sizes="(max-width: 640px) 60vw, 20rem"
+								/>
+							)
+						}
+					</div>
+				</figure>
 			</div>
 		</section>
 
-		{/* ------------------------------------------------------ newsletter --- */}
+		<section class="shell sections" aria-label="Sections">
+			{
+				sections.map((s) => (
+					<details class="fold" name="home-sections">
+						<summary class="fold__summary">
+							<span class="fold__title">{s.title}</span>
+							<span class="fold__icon" aria-hidden="true" />
+						</summary>
+						<div class="fold__body">
+							<p>{s.line}</p>
+							<a class="fold__link" href={s.href}>
+								Go to {s.title}
+							</a>
+						</div>
+					</details>
+				))
+			}
+		</section>
+
 		<section class="section shell">
-			<div data-reveal>
-				<Newsletter />
-			</div>
+			<Subscribe id="home" />
 		</section>
 	</main>
 
 	<SiteFooter />
 </BaseLayout>
+
+<style>
+	.intro {
+		position: relative;
+		padding-block: var(--sp-7) var(--sp-6);
+	}
+
+	.intro__inner {
+		position: relative;
+		z-index: 1;
+		display: grid;
+		gap: var(--sp-6);
+		align-items: start;
+	}
+
+	/* The portrait is first in the source order for a phone only visually: it
+	   sits after the text there, and to the right of it on a wide screen. */
+	@media (min-width: 900px) {
+		.intro__inner {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+			column-gap: clamp(2rem, 6vw, 5rem);
+		}
+	}
+
+	.intro__text {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-6);
+	}
+
+	/* The identity line, set as a quotation: Fraunces, large, an ember rule
+	   down its left edge — the same device prose.css uses for a blockquote. */
+	.intro__quote {
+		padding-inline-start: clamp(1.25rem, 3vw, 2rem);
+		border-inline-start: 2px solid var(--ember);
+		font-variation-settings: 'opsz' 90;
+		font-weight: 500;
+		font-size: var(--fs-display-m);
+		line-height: 1.12;
+		text-wrap: balance;
+	}
+
+	.intro__body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-3);
+		max-width: var(--split-body);
+		font-family: var(--font-prose);
+		font-size: var(--fs-prose);
+		line-height: var(--lh-prose);
+	}
+
+	.intro__body .label {
+		font-family: var(--font-ui);
+	}
+
+	.intro__portrait {
+		margin: 0;
+		width: min(100%, 20rem);
+	}
+
+	.intro__frame {
+		aspect-ratio: 4 / 5;
+		overflow: hidden;
+		border-radius: 2px;
+		background: var(--paper-deep);
+		border: 1px solid var(--rule);
+	}
+
+	.intro__frame :global(img) {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		filter: var(--filter-cover);
+	}
+
+	/* Collapsible sections: one open at a time (the shared `name`), each a
+	   native <details> so it works without JavaScript. */
+	.sections {
+		max-width: calc(var(--measure-wide) + var(--gutter) * 2);
+		padding-block-start: var(--sp-5);
+	}
+
+	.fold {
+		border-top: 1px solid var(--rule);
+	}
+
+	.fold:last-child {
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.fold__summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--sp-3);
+		padding-block: var(--sp-4);
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.fold__summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.fold__title {
+		font-family: var(--font-display);
+		font-variation-settings: 'opsz' 60;
+		font-weight: 500;
+		font-size: var(--fs-display-m);
+		line-height: var(--lh-heading);
+	}
+
+	/* A plus that becomes a minus: two hairlines, one rotated away. */
+	.fold__icon {
+		position: relative;
+		flex: none;
+		width: 1.25rem;
+		height: 1.25rem;
+		color: var(--ink-muted);
+	}
+
+	.fold__icon::before,
+	.fold__icon::after {
+		content: '';
+		position: absolute;
+		inset-inline: 0;
+		top: 50%;
+		border-top: 1.5px solid currentColor;
+		transition: transform var(--t-base) var(--ease-out);
+	}
+
+	.fold__icon::after {
+		transform: rotate(90deg);
+	}
+
+	.fold[open] .fold__icon::after {
+		transform: rotate(0deg);
+	}
+
+	.fold__summary:hover .fold__title {
+		color: var(--ember);
+	}
+
+	.fold__body {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-3);
+		padding-block-end: var(--sp-4);
+		max-width: var(--split-body);
+		color: var(--ink-soft);
+	}
+
+	.fold__link {
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ember);
+		text-decoration: none;
+	}
+
+	.fold__link::after {
+		content: ' →';
+	}
+
+	@media (max-width: 560px) {
+		.intro__portrait {
+			width: min(100%, 14rem);
+		}
+	}
+</style>

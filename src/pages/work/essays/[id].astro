@@ -1,0 +1,53 @@
+---
+/**
+ * /work/essays/<id> — an essay published on this site rather than in the
+ * newsletter. Only essays with a body and no outside address get a page.
+ */
+import { render } from 'astro:content';
+
+import PageLayout from '../../../layouts/PageLayout.astro';
+import Prose from '../../../components/Prose.astro';
+import { essaysIn, type Essay } from '../../../lib/essays';
+
+export async function getStaticPaths() {
+	const essays = await essaysIn('essay');
+	return essays
+		.filter((e) => !e.data.href && e.body?.trim())
+		.map((essay) => ({ params: { id: essay.id }, props: { essay } }));
+}
+
+const { essay } = Astro.props as { essay: Essay };
+const { Content } = await render(essay);
+---
+
+<PageLayout
+	title={essay.data.title}
+	docTitle={essay.data.title}
+	eyebrow="Essays"
+	description={essay.data.line}
+	trail={[
+		{ name: 'Work', path: '/work' },
+		{ name: 'Essays', path: '/work/essays' },
+		{ name: essay.data.title, path: `/work/essays/${essay.id}` },
+	]}
+	headline
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<div class="essay">
+				<Prose class="prose--plain">
+					<Content />
+				</Prose>
+			</div>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	/* A long read gets the room's single reading column, centred under the
+	   headline rather than pinned to the left edge. */
+	.essay :global(.prose) {
+		max-width: var(--split-body);
+		margin-inline: auto;
+	}
+</style>

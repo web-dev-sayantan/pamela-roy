@@ -54,7 +54,7 @@ export interface HeadProps {
 
 const {
 	title,
-	description = SITE.tagline,
+	description = SITE.description,
 	type = 'website',
 	image = '/og/default.png',
 	imageAlt,
@@ -77,10 +77,10 @@ const {
 const canonical = new URL(Astro.url.pathname, Astro.site ?? SITE.url).href;
 const imageUrl = new URL(image, Astro.site ?? SITE.url).href;
 
-/* %s · Pamela Roy, with one exception: the home page's title is the name, and
-   appending the name to the name is the sort of small thing that reads as a
-   mistake on every single visit. */
-const fullTitle = title === SITE.name ? title : `${title} · ${SITE.name}`;
+/* Pamela Roy — %s, name first so a shared link is recognisable. The one
+   exception is the home page, whose title is the name: repeating it would read
+   as a mistake on every visit. */
+const fullTitle = title === SITE.name ? title : `${SITE.name} — ${title}`;
 
 import frauncesUrl from '@fontsource-variable/fraunces/files/fraunces-latin-standard-normal.woff2?url';
 import newsreaderUrl from '@fontsource-variable/newsreader/files/newsreader-latin-standard-normal.woff2?url';
@@ -106,7 +106,7 @@ import newsreaderUrl from '@fontsource-variable/newsreader/files/newsreader-lati
 <link
 	rel="alternate"
 	type="application/rss+xml"
-	title={`${SITE.name} — all writing`}
+	title={`${SITE.name} — Writing`}
 	href={new URL('/rss.xml', Astro.site ?? SITE.url).href}
 />
 

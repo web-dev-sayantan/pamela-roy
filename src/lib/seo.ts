@@ -14,8 +14,6 @@
  */
 
 import { SITE } from './site';
-import { topicLabel } from './topics';
-import type { Writing } from './writings';
 
 const absolute = (path: string, site: URL | undefined): string =>
 	new URL(path, site ?? SITE.url).href;
@@ -32,8 +30,14 @@ export function personLd(site?: URL) {
 		name: SITE.name,
 		url: absolute('/about', site),
 		email: `mailto:${SITE.email}`,
-		jobTitle: 'Writer and ghostwriter',
-		knowsAbout: ['Writing', 'Editing', 'Interviewing', 'Books'],
+		jobTitle: 'Marketing and communications',
+		knowsAbout: [
+			'Branding',
+			'Cultural communications',
+			'Content marketing',
+			'Generative AI education',
+		],
+		address: { '@type': 'PostalAddress', addressLocality: 'Berlin', addressCountry: 'DE' },
 		// The person and the site are separate entities on purpose. Pamela is
 		// not the same thing as the library, and a search result that says so is
 		// more useful than one that conflates them.
@@ -52,43 +56,9 @@ export function websiteLd(site?: URL) {
 		'@id': `${absolute('/', site)}#website`,
 		name: SITE.name,
 		url: absolute('/', site),
-		description: SITE.tagline,
+		description: SITE.description,
 		inLanguage: 'en-GB',
 		publisher: { '@id': `${absolute('/about', site)}#person` },
-	};
-}
-
-/**
- * `BlogPosting` — one piece.
- *
- * The headline is the title, the date is the same Date object the meta row
- * formats, and the image is the generated card rather than the cover image: a
- * cover is often absent, is usually 4:5, and is the wrong shape for anything
- * that renders a card. The card exists for every piece, so the field is never
- * empty.
- */
-export function articleLd(entry: Writing, site?: URL) {
-	const href = absolute(`/library/${entry.id}`, site);
-
-	return {
-		'@type': 'BlogPosting',
-		'@id': `${href}#article`,
-		headline: entry.data.title,
-		description: entry.data.description,
-		datePublished: entry.data.publishDate.toISOString(),
-		dateModified: (entry.data.updatedDate ?? entry.data.publishDate).toISOString(),
-		// The one Date the whole site is careful about — see the note on the
-		// UTC getters in lib/writings. toISOString is UTC, so the two cannot
-		// disagree about which day a piece is from.
-		inLanguage: 'en-GB',
-		wordCount: entry.body?.split(/\s+/).filter(Boolean).length ?? 0,
-		articleSection: topicLabel(entry.data.topic),
-		keywords: entry.data.tags.join(', ') || undefined,
-		url: href,
-		mainEntityOfPage: { '@id': href },
-		image: [absolute(`/og/${entry.id}.png`, site)],
-		author: { '@id': `${absolute('/about', site)}#person` },
-		isPartOf: { '@id': `${absolute('/', site)}#website` },
 	};
 }
 

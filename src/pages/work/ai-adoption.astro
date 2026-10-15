@@ -1,0 +1,260 @@
+---
+/**
+ * /work/ai-adoption — the case study, rebuilt from the PDF.
+ *
+ * The strongest single piece of evidence on the site, given a proper reading
+ * layout. The two charts are inline SVG, drawn here from the numbers, not
+ * screenshots of the PDF. Small and plain on purpose.
+ *
+ * Retention is the cohort as the case study states it: 6 enrolled, 4 active,
+ * 3 completed. The frictions chart carries no magnitudes, because the study
+ * reports none — five barriers, with trust marked as "the strongest signal in
+ * the room", which is the only ranking the text makes.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import Prose from '../../components/Prose.astro';
+
+const cohort = [
+	{ label: 'Enrolled', n: 6 },
+	{ label: 'Active', n: 4 },
+	{ label: 'Completed', n: 3 },
+];
+
+const frictions = [
+	'No mental model',
+	'Setup friction',
+	'Cognitive load',
+	'Trust assessment',
+	'Identity resistance',
+];
+const strongest = 'Trust assessment';
+
+const unit = 56; // px per participant
+const left = 96; // label gutter
+---
+
+<PageLayout
+	title="From AI quick wins to AI enabler"
+	docTitle="AI Adoption Case Study"
+	eyebrow="AI Adoption · Case study"
+	description="Designing for adoption in a trust-cautious market."
+	trail={[
+		{ name: 'Work', path: '/work' },
+		{ name: 'AI Adoption', path: '/work/ai-adoption' },
+	]}
+	headline
+>
+	<section class="section section--flush">
+		<div class="shell">
+			<Prose class="prose--plain prose--split">
+				<h2>Berlin, 2026</h2>
+				<p>
+					Berlin, 2026. Four sessions, thirteen hours, six enrolled, three finished. A small cohort,
+					and a useful one, because the people in it were exactly the professionals every AI product
+					is currently trying to reach and mostly failing to keep.
+				</p>
+				<p>
+					The goal was never tool exposure. It was adoption: getting AI into real working practice,
+					against real privacy concerns, real tiredness and real scepticism about the companies
+					involved.
+				</p>
+
+				<h2>What actually got in the way</h2>
+				<p>
+					Retention tracked normal adult evening-course patterns. The interesting part was why people
+					stalled, and it was rarely technical ability.
+				</p>
+
+				<figure class="chart">
+					<svg
+						viewBox={`0 0 ${left + unit * 6 + 40} 132`}
+						role="img"
+						aria-labelledby="retention-title retention-desc"
+					>
+						<title id="retention-title">Cohort retention</title>
+						<desc id="retention-desc">
+							Six participants enrolled, four stayed active, three completed the course.
+						</desc>
+						{
+							cohort.map((row, i) => (
+								<g transform={`translate(0 ${i * 40 + 8})`}>
+									<text class="chart__label" x="0" y="20">
+										{row.label}
+									</text>
+									<rect
+										class:list={['chart__bar', i === 2 && 'chart__bar--end']}
+										x={left}
+										y="4"
+										width={row.n * unit}
+										height="24"
+									/>
+									<text class="chart__value" x={left + row.n * unit + 10} y="21">
+										{row.n}
+									</text>
+								</g>
+							))
+						}
+					</svg>
+					<figcaption>Cohort retention: enrolled, active, completed.</figcaption>
+				</figure>
+
+				<p>Five barriers came up consistently.</p>
+
+				<p>
+					<strong>No mental model.</strong> People had used the tools and still couldn't say what they
+					were for. Without a model of where AI fits, every session starts from zero.
+				</p>
+				<p>
+					<strong>Setup friction.</strong> Accounts, versions, permissions, which tool does which thing.
+					Small obstacles, but they arrive before any value does.
+				</p>
+				<p>
+					<strong>Cognitive load.</strong> This is an evening course. People come after a full working
+					day. Anything requiring fresh concentration loses.
+				</p>
+				<p>
+					<strong>Trust assessment.</strong> The strongest signal in the room. Participants were actively
+					evaluating what happens to their data, and they wanted an answer before they would engage, not
+					after.
+				</p>
+				<p>
+					<strong>Identity resistance.</strong> Experienced professionals whose skill is the thing being
+					automated. Not fear of the technology. Discomfort about what it means for what they're worth.
+				</p>
+
+				<figure class="chart">
+					<svg viewBox="0 0 400 190" role="img" aria-labelledby="friction-title friction-desc">
+						<title id="friction-title">The five adoption frictions</title>
+						<desc id="friction-desc">
+							No mental model, setup friction, cognitive load, trust assessment and identity
+							resistance. Trust assessment was the strongest signal in the room.
+						</desc>
+						{
+							frictions.map((label, i) => (
+								<g transform={`translate(0 ${i * 36 + 8})`}>
+									<circle
+										class:list={['chart__dot', label === strongest && 'chart__dot--strong']}
+										cx="12"
+										cy="14"
+										r="6"
+									/>
+									<text class="chart__label" x="32" y="19">
+										{label}
+									</text>
+									{label === strongest && (
+										<text class="chart__note" x="200" y="19">
+											the strongest signal
+										</text>
+									)}
+								</g>
+							))
+						}
+					</svg>
+					<figcaption>
+						The five adoption frictions. Unranked, except the one the room made loudest.
+					</figcaption>
+				</figure>
+
+				<h2>What I changed</h2>
+				<p>
+					<strong>Frameworks over features.</strong> RCCO and TRAP, taught as transferable structures
+					rather than tool tutorials.
+				</p>
+				<p>
+					<strong>Workflows over prompts.</strong> Every demonstration was an end-to-end piece of real
+					work, not an isolated clever instruction.
+				</p>
+				<p>
+					<strong>A personal win in every session.</strong> Everyone left each session with one output
+					from their own job that they could use the next morning.
+				</p>
+
+				<h2>What shifted</h2>
+				<p>
+					Participants arrived seeing AI as either a novelty or a threat. By session three, they were
+					structuring their own prompts, chaining outputs, and rejecting tools on their own judgment.
+				</p>
+				<p>
+					The real indicator of adoption wasn't fluency. It was agency. People stopped asking what AI
+					could do and started deciding what it was allowed to do in their work.
+				</p>
+
+				<h2>What this means if you build or sell AI products</h2>
+				<ul>
+					<li>Trust is a conversion mechanism in European markets, not a compliance footnote.</li>
+					<li>People adopt a use case before they adopt a tool.</li>
+					<li>Clarity beats feature breadth. Every time.</li>
+					<li>The first successful personal output predicts whether someone comes back.</li>
+					<li>Professional identity is a hidden variable in every adoption curve.</li>
+					<li>Tool proliferation has created a selection problem, and selection is a trust problem.</li>
+				</ul>
+				<p>
+					Adoption is rarely blocked by intelligence or curiosity. It's blocked by uncertainty: about
+					privacy, about usefulness, about fit, about what it says about you that you're using it.
+					Products that reduce that uncertainty, show relevance immediately, and frame themselves as
+					augmentation get adopted. The rest get tried once.
+				</p>
+			</Prose>
+		</div>
+	</section>
+</PageLayout>
+
+<style>
+	.chart {
+		margin-block: 2em;
+		max-width: 28rem;
+	}
+
+	.chart svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		overflow: visible;
+	}
+
+	.chart figcaption {
+		margin-block-start: var(--sp-2);
+		font-family: var(--font-ui);
+		font-size: var(--fs-small);
+		color: var(--ink-muted);
+	}
+
+	/* SVG text does not inherit the prose font; set it so the chart reads in the
+	   site's own voices. */
+	.chart__label,
+	.chart__value,
+	.chart__note {
+		font-family: var(--font-ui);
+		font-size: 13px;
+		fill: var(--ink-soft);
+	}
+
+	.chart__value {
+		font-weight: 600;
+		fill: var(--ink);
+	}
+
+	.chart__note {
+		font-style: italic;
+		fill: var(--ember);
+	}
+
+	.chart__bar {
+		fill: var(--ink-muted);
+	}
+
+	.chart__bar--end {
+		fill: var(--ember);
+	}
+
+	.chart__dot {
+		fill: none;
+		stroke: var(--ink-muted);
+		stroke-width: 1.5;
+	}
+
+	.chart__dot--strong {
+		fill: var(--ember);
+		stroke: var(--ember);
+	}
+</style>

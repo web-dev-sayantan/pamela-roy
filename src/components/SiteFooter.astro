@@ -1,34 +1,26 @@
 ---
 /**
- * SiteFooter — stacked, per the reference: a Fraunces tagline, the nav in
- * two columns, a row of uppercase meta links, and the copyright line. A
- * hairline above separates it from the page; the bottom padding clears the
- * room frame so the last line never slides under the casing.
+ * SiteFooter — three groups of links, the subscribe block, and the copyright
+ * line. The groups come from SITE.footer: the four pages, the four subpages,
+ * and the housekeeping links. A hairline above separates it from the page; the
+ * bottom padding clears the room frame.
  */
+import Subscribe from './Subscribe.astro';
 import { SITE, isCurrentPath } from '../lib/site';
 
-// One nav, two visual columns. No grouping is invented — the list is simply
-// halved, so a nav edit in site.ts reflows here on its own.
-const midpoint = Math.ceil(SITE.nav.length / 2);
-const columns = [SITE.nav.slice(0, midpoint), SITE.nav.slice(midpoint)];
-
-// The footer repeats the nav and adds three links of its own, so it has to
-// answer "is this the current page" too. Same rule as the header.
 const here = Astro.url.pathname;
-const isCurrent = (href: string) => isCurrentPath(here, href);
+const isCurrent = (href: string) => !href.startsWith('mailto:') && isCurrentPath(here, href);
 
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
 	<div class="shell site-footer__inner">
-		<p class="site-footer__tagline">{SITE.tagline}</p>
-
 		<nav class="site-footer__nav" aria-label="Footer">
 			{
-				columns.map((column) => (
+				SITE.footer.map((group) => (
 					<ul>
-						{column.map((item) => (
+						{group.map((item) => (
 							<li>
 								<a
 									class="footer-link"
@@ -44,23 +36,7 @@ const year = new Date().getFullYear();
 			}
 		</nav>
 
-		<ul class="site-footer__meta">
-			<li>
-				<a
-					class="footer-link"
-					href="/colophon"
-					aria-current={isCurrent('/colophon') ? 'page' : undefined}>Colophon</a
-				>
-			</li>
-			<li>
-				<a
-					class="footer-link"
-					href="/rss.xml"
-					aria-current={isCurrent('/rss.xml') ? 'page' : undefined}>RSS</a
-				>
-			</li>
-			<li><a class="footer-link" href={`mailto:${SITE.email}`}>Email</a></li>
-		</ul>
+		<Subscribe id="footer" compact />
 
 		<p class="site-footer__copy">© {year} {SITE.name}</p>
 	</div>
@@ -78,31 +54,16 @@ const year = new Date().getFullYear();
 		gap: var(--sp-5);
 	}
 
-	.site-footer__tagline {
-		font-family: var(--font-display);
-		font-size: var(--fs-title);
-		font-weight: 500;
-		line-height: var(--lh-heading);
-		max-width: 24ch;
-	}
-
 	.site-footer__nav {
 		display: flex;
-		gap: var(--sp-6);
+		flex-wrap: wrap;
+		gap: var(--sp-5) var(--sp-7);
 	}
 
 	.site-footer__nav ul {
 		display: flex;
 		flex-direction: column;
 		gap: var(--sp-2);
-		list-style: none;
-		padding: 0;
-	}
-
-	.site-footer__meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--sp-2) var(--sp-4);
 		list-style: none;
 		padding: 0;
 	}

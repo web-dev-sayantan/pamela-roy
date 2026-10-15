@@ -32,14 +32,27 @@ interface Props {
 	trail?: { name: string; path: string }[];
 	/** Keeps the page out of search results. Used by the 404. */
 	noindex?: boolean;
+	/**
+	 * The document title, when the h1 is a headline rather than a page name:
+	 * `Pamela Roy — AI Workshops` should not be `Pamela Roy — Teaching AI to
+	 * people who have a job to do`. Defaults to the title.
+	 */
+	docTitle?: string;
+	/** Sets the h1 as a sentence-case headline instead of the uppercase display title. */
+	headline?: boolean;
+	/**
+	 * Keeps the description for search and sharing without printing it under the
+	 * title — for pages whose first paragraph already says the same thing.
+	 */
+	quiet?: boolean;
 }
 
-const { title, eyebrow, description, trail, noindex } = Astro.props;
+const { title, eyebrow, description, trail, noindex, docTitle, headline = false, quiet = false } = Astro.props;
 
 const crumbs = trail?.length ? [homeCrumb, ...trail] : undefined;
 ---
 
-<BaseLayout title={title} {description} {noindex}>
+<BaseLayout title={docTitle ?? title} {description} {noindex}>
 	{crumbs && <JsonLd data={breadcrumbLd(crumbs, Astro.site)} />}
 	<SiteHeader />
 
@@ -48,9 +61,9 @@ const crumbs = trail?.length ? [homeCrumb, ...trail] : undefined;
 			<div class="hearth" aria-hidden="true"></div>
 
 			<div class="shell page-head__inner">
-				{eyebrow && <p class="label">{eyebrow}</p>}
-				<h1 class="page-title">{title}</h1>
-				{description && <p class="page-head__description">{description}</p>}
+				{eyebrow && <p class="label page-head__eyebrow">{eyebrow}</p>}
+				<h1 class:list={['page-title', headline && 'page-title--headline']}>{title}</h1>
+				{description && !quiet && <p class="page-head__description">{description}</p>}
 			</div>
 		</header>
 
@@ -75,6 +88,29 @@ const crumbs = trail?.length ? [homeCrumb, ...trail] : undefined;
 		gap: var(--sp-4);
 	}
 
+	/* With room for it, the title keeps the left and the description sits in
+	   the right-hand column, on the same left edge as the body copy below —
+	   so the header is balanced across the page, not stacked against one side. */
+	@media (min-width: 1100px) {
+		.page-head__inner {
+			display: grid;
+			/* The title is as wide as it is; the description takes the right
+			   edge. space-between keeps the two apart however long the title. */
+			grid-template-columns: max-content minmax(0, 28rem);
+			justify-content: space-between;
+			column-gap: var(--split-gap);
+			align-items: end;
+		}
+
+		.page-head__eyebrow {
+			grid-column: 1 / -1;
+		}
+
+		.page-head__description {
+			padding-block-end: 0.6rem;
+		}
+	}
+
 	/* Page titles are the second of the two places uppercase is allowed —
 	   the hero manifesto is the first. Sentence-long titles wrap in balance
 	   and never exceed a comfortable display measure. */
@@ -85,6 +121,16 @@ const crumbs = trail?.length ? [homeCrumb, ...trail] : undefined;
 		line-height: 0.95;
 		text-transform: uppercase;
 		max-width: 20ch;
+	}
+
+	/* A sentence, not a name: sentence case at section-heading size, so a long
+	   headline reads as a headline and not a shout. */
+	.page-title--headline {
+		font-size: var(--fs-display-m);
+		line-height: var(--lh-heading);
+		text-transform: none;
+		max-width: 24ch;
+		text-wrap: balance;
 	}
 
 	.page-head__description {

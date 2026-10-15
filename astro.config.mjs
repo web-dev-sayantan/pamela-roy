@@ -15,5 +15,11 @@ export default defineConfig({
 	// and shared with the RSS endpoint, which would otherwise default to adding
 	// one and fill the feed with links that 404.
 	trailingSlash: TRAILING_SLASH ? 'always' : 'never',
-	integrations: [sitemap()],
+	integrations: [
+		// The two old writing URLs only redirect to /culture/essays; keep them
+		// out of the sitemap.
+		sitemap({
+			filter: (page) => !/\/(work|culture)\/writing|\/culture\/essays/.test(page),
+		}),
+	],
 });

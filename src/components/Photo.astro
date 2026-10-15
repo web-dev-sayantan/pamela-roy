@@ -1,0 +1,68 @@
+---
+/**
+ * Photo — Pamela's own photograph, one per page, modest in size.
+ *
+ * Never full-bleed and never a background. The caption is place and date in
+ * small caps — `VIENNA, MAR 2024` — and is required: an uncaptioned photograph
+ * is not allowed on this site, so the prop is not optional.
+ *
+ * Reuses the site's one photography filter, so a portrait and a landscape shot
+ * years apart still read as the same shelf.
+ */
+import { Picture } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+	src: ImageMetadata;
+	alt: string;
+	/** Place and date, e.g. "Vienna, Mar 2024". Set in small caps. */
+	caption: string;
+	/** `portrait` is 4:5 and narrower; `landscape` is 3:2. */
+	shape?: 'portrait' | 'landscape';
+	eager?: boolean;
+}
+
+const { src, alt, caption, shape = 'landscape', eager = false } = Astro.props;
+---
+
+<figure class:list={['photo', `photo--${shape}`]}>
+	<Picture
+		src={src}
+		alt={alt}
+		formats={['avif', 'webp']}
+		loading={eager ? 'eager' : 'lazy'}
+		decoding="async"
+		widths={[320, 480, 640]}
+		sizes="(max-width: 640px) 80vw, 24rem"
+	/>
+	<figcaption class="photo__caption">{caption}</figcaption>
+</figure>
+
+<style>
+	.photo {
+		margin: 0;
+		width: min(100%, 24rem);
+	}
+
+	.photo--portrait {
+		width: min(100%, 18rem);
+	}
+
+	.photo :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: 2px;
+		filter: var(--filter-cover);
+	}
+
+	.photo__caption {
+		margin-block-start: var(--sp-2);
+		font-family: var(--font-ui);
+		font-size: var(--fs-label);
+		font-weight: 500;
+		letter-spacing: var(--track-label);
+		text-transform: uppercase;
+		color: var(--ink-muted);
+	}
+</style>
